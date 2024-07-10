@@ -6,10 +6,11 @@
 #' @param annotators Annotators to create files for.
 #' @param panelName Path and prefix for output file.  
 #' @param path Where database files will be downloaded.  
+#' @param type Type of gnomAD data to download. Applicable only for `intervar` and `all` annotators
 #' @return IonReporter annotation files.
 #' @export
 annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', 'all'),
-	panelName = './results/panel', path = './dbs'){
+	panelName = './results/panel', path = './dbs', type = c('exomes', 'genomes', 'both')){
 
 	annotators <- match.arg(annotators)
 	suppressWarnings(dir.create('./results'))
@@ -45,7 +46,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 		},
 		intervar = {
 			message('Collecting variants')
-			vars <- collectVars(gns, databases = 'all', path)
+			vars <- collectVars(gns, databases = 'all', path = path, type = type)
 			message('Pathogenicity prediction')
 			progressr::with_progress(vars <- annotateInterVar(vars))
 			vars[is.na(vars)] <- NULL

@@ -66,6 +66,7 @@ constructREVEL <- function(gns, path){
 	map <- split(map, f = map$seqnames)
 
 	# Download revel data files for respective chromosomes
+	message('Fetching and Subsetting REVEL files.')
 	revel_data <- list()
 	for(i in names(map)){
 		if(nchar(i) == 1 & i %!in% c('X', 'Y')){
@@ -121,7 +122,8 @@ constructREVEL <- function(gns, path){
 #' @param path Where data where downloaded
 #' @return vcf data.frame
 #' @export
-collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'), path){
+collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'), 
+	path, type = c('exomes', 'genomes', 'both')){
 
 	# Get gene data
 	message('Preparing data')
@@ -137,9 +139,11 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	message('Fetching gnomad variants')
 	gnomad_vcf <- do.call('rbind', lapply(map, function(x){
-		download_gnomad(paste0('chr', unique(x$seqnames)), type = 'both', pathTmp)
+		download_gnomad(paste0('chr', unique(x$seqnames)), type, pathTmp)
 		out <- list()
-		for(k in c('exomes', 'genomes')) {
+		if(type == 'both') 
+			type <- c('exomes', 'genomes')
+		for(k in type) {
 			message('Subsetting gnomAD ', k)
 			file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', 
 				unique(x$seqnames), '.vcf.bgz'))
