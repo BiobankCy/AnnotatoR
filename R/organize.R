@@ -11,16 +11,17 @@
 constructAM <- function(gns, path){
 	path <- file.path(path, 'alphamissense')
 	suppressWarnings(dir.create(path, recursive = TRUE))
+	message('Downloading AlphaMissense')
+	download_am(path)
+
 	edb <- EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86
 	granges <- ensembldb::genes(edb)
 	tranges <- ensembldb::transcripts(edb)
-
 	gns_id <- unique(as.data.frame(granges[GenomicRanges::elementMetadata(granges)$symbol %in% gns])[,'gene_id'])
 	gns_id <- gns_id[grep('ENSG', gns_id)]
 	map <- as.data.frame(tranges[GenomicRanges::elementMetadata(tranges)$gene_id %in% gns_id])
 	map$seqnames <- as.character(map$seqnames)
 
-	# Select entries
 	message('Subsetting AlphaMissense')
 	system(paste0("gzip -cdk ", file.path(path, "AlphaMissense_hg38.tsv.gz"),
 		" | LC_ALL=C grep -i -E '", paste0(map$tx_id, collapse = '|'), 
@@ -136,49 +137,23 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	message('Fetching gnomad variants')
 	gnomad_vcf <- do.call('rbind', lapply(map, function(x){
-		download_gnomad(paste0('chr', x$seqnames), type = 'both', pathTmp)
+		download_gnomad(paste0('chr', unique(x$seqnames)), type = 'both', pathTmp)
 		out <- list()
-		for(i in 1:nrow(x)){
-	
-			out[[i]] <- list()
-			for(k in c('exomes', 'genomes')) {
-				message('Subsetting gnomAD ', k)
-				file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', x$seqnames[i], '.vcf.bgz'))
-				file.gz.tbi <- paste(file.gz, ".tbi", sep="")
-				gr <- GenomicRanges::GRanges(paste0('chr', x$seqnames[i]), IRanges::IRanges(x$start[i], x$end[i]))
-				params <- VariantAnnotation::ScanVcfParam(which = gr)
-				vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
-				rg <- SummarizedExperiment::rowRanges(vcf)
-				out[[i]][[k]] <- data.frame(
-					CHR = as.character(GenomicRanges::seqnames(rg)), 
-					POS = as.data.frame(rg@ranges)$start, 
-					REF = as.character(S4Vectors::DataFrame(rg)$REF), 
-					ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
-				)
-			}
-			out[[i]] <- do.call('rbind', out[[i]])
-
-			# system(paste0('bcftools view ', file.path(pathTmp, 
-			# 	paste0('gnomad.exomes.v4.0.sites.chr', x$seqnames[i], '.vcf.bgz ')), 
-			# 	paste(paste0('chr', x$seqnames[i]), paste(x$start[i], x$end[i], sep = '-'), sep = ':'), 
-			# 	' > ', pathTmp, '/tmp_ex.vcf'))
-			# system(paste0('bcftools view ', file.path(pathTmp, 
-			# 	paste0('gnomad.genomes.v4.0.sites.chr', x$seqnames[i], '.vcf.bgz ')), 
-			# 	paste(paste0('chr', x$seqnames[i]), paste(x$start[i], x$end[i], sep = '-'), sep = ':'), 
-			# 	' > ', pathTmp, '/tmp_gen.vcf'))
-			# # gnomad <- gnomad[which(gnomad$Filters...exomes == 'PASS' |
-			# # gnomad$Filters...genomes == 'PASS'), ]
-
-			# nam_gen <- paste0(paste0(pathTmp, '/gnomad_genome_', x$gene_name[i], '.vcf'))
-			# nam_ex <- paste0(paste0(pathTmp, '/gnomad_exome_', x$gene_name[i], '.vcf'))
-			# # system(paste0('bcftools query -f "%CHROM %POS %ID %REF %ALT %AF\n" tmp_ex.vcf > ', nam_ex))
-			# # system(paste0('bcftools query -f "%CHROM %POS %ID %REF %ALT %AF\n" tmp_gen.vcf > ', nam_gen))
-			# system(paste0('bcftools query -f "%CHROM %POS %REF %ALT\n" ', 
-			# 	file.path(pathTmp, 'tmp_ex.vcf'), ' > ', nam_ex))
-			# system(paste0('bcftools query -f "%CHROM %POS %REF %ALT\n" ', 
-			# 	file.path(pathTmp, 'tmp_gen.vcf'), ' > ', nam_gen))
-			# unlink(c('tmp_ex.vcf', 'tmp_ex.vcf'))
-			# out[[i]] <- rbind(read.table(nam_ex), read.table(nam_gen))
+		for(k in c('exomes', 'genomes')) {
+			message('Subsetting gnomAD ', k)
+			file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', 
+				unique(x$seqnames), '.vcf.bgz'))
+			file.gz.tbi <- paste(file.gz, ".tbi", sep="")
+			gr <- GenomicRanges::GRanges(paste0('chr', x$seqnames), IRanges::IRanges(x$start, x$end))
+			params <- VariantAnnotation::ScanVcfParam(which = gr)
+			vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
+			rg <- SummarizedExperiment::rowRanges(vcf)
+			out[[k]] <- data.frame(
+				CHR = as.character(GenomicRanges::seqnames(rg)), 
+				POS = as.data.frame(rg@ranges)$start, 
+				REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+				ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+			)
 		}
 		return(do.call('rbind', out))
 	}))

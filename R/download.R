@@ -94,7 +94,7 @@ download_am <- function(path){
 	if(file.exists(file.path(path, 'AlphaMissense_hg38.tsv.gz'))){
 		return
 	} else {
-		system('wget -q --show-progress -P ', path, ' https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz')
+		system(paste0('wget -q --show-progress -P ', path, ' https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz'))
 	}
 }
 

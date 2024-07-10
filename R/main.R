@@ -13,9 +13,6 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 
 	annotators <- match.arg(annotators)
 	suppressWarnings(dir.create('./results'))
-	suppressWarnings(dir.create('./log'))
-	invisible(if(!file.exists('./log/log.txt')) file.create('./log/log.txt'))
-
 	switch(annotators,
 		revel = {
 			vcf_body <- constructREVEL(gns, path)
