@@ -14,7 +14,12 @@ Imports:
     EnsDb.Hsapiens.v86,
     ensembldb,
     GenomicRanges,
-    rjson,
-    progressr,
     httr,
-    stringr
+    IRanges,
+    progressr,
+    rjson,
+    Rsamtools,
+    S4Vectors,
+    stringr,
+    SummarizedExperiment,
+    VariantAnnotation

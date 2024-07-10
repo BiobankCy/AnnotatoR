@@ -47,7 +47,9 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 				na = '')
 		},
 		intervar = {
+			message('Collecting variants')
 			vars <- collectVars(gns, databases = 'all', path)
+			message('Pathogenicity prediction')
 			progressr::with_progress(vars <- annotateInterVar(vars))
 			vars[is.na(vars)] <- NULL
 			message(length(vars), ' variants were annotated.')

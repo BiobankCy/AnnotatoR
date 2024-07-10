@@ -132,57 +132,92 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 	map <- split(map, f = map$seqnames)
 
 	# gnomad
-	path <- file.path(path, 'gnomad')
-	suppressWarnings(dir.create(path, recursive = TRUE))
+	pathTmp <- file.path(path, 'gnomad')
+	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	message('Fetching gnomad variants')
 	gnomad_vcf <- do.call('rbind', lapply(map, function(x){
-		download_gnomad(paste0('chr', x$seqnames), type = 'both', path)
+		download_gnomad(paste0('chr', x$seqnames), type = 'both', pathTmp)
 		out <- list()
 		for(i in 1:nrow(x)){
 	
-			system(paste0('bcftools view ', file.path(path, 'gnomad.exomes.v4.0.sites.chrY.vcf.bgz '), 
-				paste(paste0('chr', x$seqnames[i]), paste(x$start[i], x$end[i], sep = '-'), sep = ':'), 
-				' > ', path, '/tmp_ex.vcf'))
-			system(paste0('bcftools view ', file.path(path, 'gnomad.genomes.v4.0.sites.chrY.vcf.bgz '), 
-				paste(paste0('chr', x$seqnames[i]), paste(x$start[i], x$end[i], sep = '-'), sep = ':'), 
-				' > ', path, '/tmp_gen.vcf'))
-			# gnomad <- gnomad[which(gnomad$Filters...exomes == 'PASS' |
-			# gnomad$Filters...genomes == 'PASS'), ]
+			out[[i]] <- list()
+			for(k in c('exomes', 'genomes')) {
+				message('Subsetting gnomAD ', k)
+				file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', x$seqnames[i], '.vcf.bgz'))
+				file.gz.tbi <- paste(file.gz, ".tbi", sep="")
+				gr <- GenomicRanges::GRanges(paste0('chr', x$seqnames[i]), IRanges::IRanges(x$start[i], x$end[i]))
+				params <- VariantAnnotation::ScanVcfParam(which = gr)
+				vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
+				rg <- SummarizedExperiment::rowRanges(vcf)
+				out[[i]][[k]] <- data.frame(
+					CHR = as.character(GenomicRanges::seqnames(rg)), 
+					POS = as.data.frame(rg@ranges)$start, 
+					REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+					ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+				)
+			}
+			out[[i]] <- do.call('rbind', out[[i]])
 
-			nam_gen <- paste0(file.path(path, 'gnomad_genome_', x$gene_name[i], '.vcf'))
-			nam_ex <- paste0(file.path(path, 'gnomad_exome_', x$gene_name[i], '.vcf'))
-			# system(paste0('bcftools query -f "%CHROM %POS %ID %REF %ALT %AF\n" tmp_ex.vcf > ', nam_ex))
-			# system(paste0('bcftools query -f "%CHROM %POS %ID %REF %ALT %AF\n" tmp_gen.vcf > ', nam_gen))
-			system(paste0('bcftools query -f "%CHROM %POS %REF %ALT\n" ', 
-				file.path(path, 'tmp_ex.vcf'), ' > ', nam_ex))
-			system(paste0('bcftools query -f "%CHROM %POS %REF %ALT\n" ', 
-				file.path(path, 'tmp_gen.vcf'), ' > ', nam_gen))
-			unlink(c('tmp_ex.vcf', 'tmp_ex.vcf'))
-			out[[i]] <- rbind(read.table(nam_ex), read.table(nam_gen))
+			# system(paste0('bcftools view ', file.path(pathTmp, 
+			# 	paste0('gnomad.exomes.v4.0.sites.chr', x$seqnames[i], '.vcf.bgz ')), 
+			# 	paste(paste0('chr', x$seqnames[i]), paste(x$start[i], x$end[i], sep = '-'), sep = ':'), 
+			# 	' > ', pathTmp, '/tmp_ex.vcf'))
+			# system(paste0('bcftools view ', file.path(pathTmp, 
+			# 	paste0('gnomad.genomes.v4.0.sites.chr', x$seqnames[i], '.vcf.bgz ')), 
+			# 	paste(paste0('chr', x$seqnames[i]), paste(x$start[i], x$end[i], sep = '-'), sep = ':'), 
+			# 	' > ', pathTmp, '/tmp_gen.vcf'))
+			# # gnomad <- gnomad[which(gnomad$Filters...exomes == 'PASS' |
+			# # gnomad$Filters...genomes == 'PASS'), ]
+
+			# nam_gen <- paste0(paste0(pathTmp, '/gnomad_genome_', x$gene_name[i], '.vcf'))
+			# nam_ex <- paste0(paste0(pathTmp, '/gnomad_exome_', x$gene_name[i], '.vcf'))
+			# # system(paste0('bcftools query -f "%CHROM %POS %ID %REF %ALT %AF\n" tmp_ex.vcf > ', nam_ex))
+			# # system(paste0('bcftools query -f "%CHROM %POS %ID %REF %ALT %AF\n" tmp_gen.vcf > ', nam_gen))
+			# system(paste0('bcftools query -f "%CHROM %POS %REF %ALT\n" ', 
+			# 	file.path(pathTmp, 'tmp_ex.vcf'), ' > ', nam_ex))
+			# system(paste0('bcftools query -f "%CHROM %POS %REF %ALT\n" ', 
+			# 	file.path(pathTmp, 'tmp_gen.vcf'), ' > ', nam_gen))
+			# unlink(c('tmp_ex.vcf', 'tmp_ex.vcf'))
+			# out[[i]] <- rbind(read.table(nam_ex), read.table(nam_gen))
 		}
 		return(do.call('rbind', out))
 	}))
-	colnames(gnomad_vcf) <- c('CHR', 'POS', 'REF', 'ALT')
 	rownames(gnomad_vcf) <- NULL
 
 	# clinvar
-	path <- file.path(path, 'clinvar')
-	suppressWarnings(dir.create(path, recursive = TRUE))
+	pathTmp <- file.path(path, 'clinvar')
+	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	message('Fetching clinvar variants')
-	download_clinvar(path)
-	system(paste0('bcftools query -f "%CHROM %POS %REF %ALT %GENEINFO\n" ', file.path(path, 'clinvar.vcf.gz'), 
-		' > ', file.path(path, 'clinvar_tmp.vcf')))
-	clinvar_vcf <- read.table(file.path(path, 'clinvar_tmp.vcf'))
-	colnames(clinvar_vcf) <- c('CHR', 'POS', 'REF', 'ALT', 'GENEINFO')
+	download_clinvar(pathTmp)
+	message('Subsetting clinvar variants')
+	file.gz <- file.path(pathTmp, 'clinvar.vcf.gz')
+	file.gz.tbi <- paste(file.gz, ".tbi", sep="")
+	if(!(file.exists(file.gz.tbi)))
+	    Rsamtools::indexTabix(file.gz, format="vcf")
+	params <- VariantAnnotation::ScanVcfParam(info = 'GENEINFO')
+	vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
+	rg <- SummarizedExperiment::rowRanges(vcf)
+	inf <- VariantAnnotation::info(vcf)
+	clinvar_vcf <- data.frame(
+		CHR = as.character(GenomicRanges::seqnames(rg)), 
+		POS = as.data.frame(rg@ranges)$start, 
+		REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+		ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT)),
+		GENEINFO = as.character(inf$GENEINFO)
+	)
+	# system(paste0('bcftools query -f "%CHROM %POS %REF %ALT %GENEINFO\n" ', file.path(pathTmp, 'clinvar.vcf.gz'), 
+	# 	' > ', file.path(pathTmp, 'clinvar_tmp.vcf')))
+	# clinvar_vcf <- read.table(file.path(pathTmp, 'clinvar_tmp.vcf'))
+	# colnames(clinvar_vcf) <- c('CHR', 'POS', 'REF', 'ALT', 'GENEINFO')
 	clinvar_vcf <- clinvar_vcf[grep(paste(gns, collapse = '|'), clinvar_vcf$GENEINFO), 1:4]
 
 	# lovd3
-	path <- file.path(path, 'lovd3')
-	suppressWarnings(dir.create(path, recursive = TRUE))
+	pathTmp <- file.path(path, 'lovd3')
+	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	message('Retrieving LOVD3 variants')
-	download_lovd3(gns, path)
+	download_lovd3(gns, pathTmp)
 	lovd3_vcf <- list()
-	for(i in list.files(path, full.names = TRUE)){
+	for(i in list.files(pathTmp, full.names = TRUE)){
 		tmp <- readLines(i)
 		gene <- gsub('LOVD_full_download_|_.*-.*', '', basename(i))
 
