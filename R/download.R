@@ -17,25 +17,39 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 			if(file.exists(f)) {
 				return
 				} else  {
-					system(paste0('wget -q --show-progress -P ', path,
-						' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/exomes/gnomad.exomes.v4.0.sites.', 
-						chr, '.vcf.bgz'))
-					system(paste0('wget -q --show-progress -P ', path, 
-						' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/exomes/gnomad.exomes.v4.0.sites.', 
-						chr, '.vcf.bgz.tbi'))
+					lnk <- paste0(' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/exomes/gnomad.exomes.v4.0.sites.', 
+						chr, '.vcf.bgz')
+					system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | uniq > ", path, "/size.txt"))
+					message('You are about to download ~', round(as.integer(readLines(file.path(path, 'size.txt')))*10^-9, 2), 'GiB of data.') 
+					if(isTRUE(askYesNo('Do you want to proceed?'))){
+						system(paste0('wget -q --show-progress -P ', path, lnk))
+						lnkIndex <- paste0(lnk, '.tbi')
+						system(paste0('wget -q --show-progress -P ', path, lnkIndex))
+						unlink(c(file.path(path, 'size.txt'), 'NUL'))
+					} else {
+						unlink(c(file.path(path, 'size.txt'), 'NUL'))
+						stop('Select another annotator set.')
+					}
 				}
 		},
 		genomes = {
 			f <- paste0('gnomad.exomes.v4.0.sites.', chr, '.vcf.bgz')
 			if(file.exists(f)) {
 				return
-				} else  {			
-					system(paste0('wget -q --show-progress -P ', path, 
-						' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/genomes/gnomad.genomes.v4.0.sites.', 
-						chr, '.vcf.bgz'))
-					system(paste0('wget -q --show-progress -P ', path, 
-						' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/genomes/gnomad.genomes.v4.0.sites.', 
-						chr, '.vcf.bgz.tbi'))
+				} else  {
+					lnk <- paste0(' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/genomes/gnomad.genomes.v4.0.sites.', 
+						chr, '.vcf.bgz')	
+					system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | uniq > ", path, "/size.txt"))
+					message('You are about to download ~', round(as.integer(readLines(file.path(path, 'size.txt')))*10^-9, 2), 'GiB of data.') 
+					if(isTRUE(askYesNo('Do you want to proceed?'))){
+						system(paste0('wget -q --show-progress -P ', path, lnk))
+						lnkIndex <- paste0(lnk, '.tbi')
+						system(paste0('wget -q --show-progress -P ', path, lnkIndex))
+						unlink(c(file.path(path, 'size.txt'), 'NUL'))
+					} else {
+						unlink(c(file.path(path, 'size.txt'), 'NUL'))
+						stop('Select another annotator set.')
+					}
 				}
 		},
 		both = {
@@ -43,23 +57,37 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 			f2 <- paste0(path, '/gnomad.genomes.v4.0.sites.', chr, '.vcf.bgz')
 			if(file.exists(f1)) {
 				return
-				} else  {	
-					system(paste0('wget -q --show-progress -P ', path, 
-						' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/exomes/gnomad.exomes.v4.0.sites.', 
-						chr, '.vcf.bgz'))
-					system(paste0('wget -q --show-progress -P ', path, 
-						' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/exomes/gnomad.exomes.v4.0.sites.', 
-						chr, '.vcf.bgz.tbi'))
+				} else  {
+					lnk <- paste0(' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/exomes/gnomad.exomes.v4.0.sites.', 
+						chr, '.vcf.bgz')
+					system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | uniq > ", path, "/size.txt"))
+					message('You are about to download ~', round(as.integer(readLines(file.path(path, 'size.txt')))*10^-9, 2), 'GiB of data.') 
+					if(isTRUE(askYesNo('Do you want to proceed?'))){
+						system(paste0('wget -q --show-progress -P ', path, lnk))
+						lnkIndex <- paste0(lnk, '.tbi')
+						system(paste0('wget -q --show-progress -P ', path, lnkIndex))
+						unlink(c(file.path(path, 'size.txt'), 'NUL'))
+					} else {
+						unlink(c(file.path(path, 'size.txt'), 'NUL'))
+						stop('Select another annotator set.')
+					}
 				}
 			if(file.exists(f2)) {
 				return
-				} else  {			
-					system(paste0('wget -q --show-progress -P ', path, 
-						' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/genomes/gnomad.genomes.v4.0.sites.', 
-						chr, '.vcf.bgz'))
-					system(paste0('wget -q --show-progress -P ', path, 
-						' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/genomes/gnomad.genomes.v4.0.sites.', 
-						chr, '.vcf.bgz.tbi'))
+				} else  {	
+					lnk <- paste0(' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/genomes/gnomad.genomes.v4.0.sites.', 
+						chr, '.vcf.bgz')	
+					system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | uniq > ", path, "/size.txt"))
+					message('You are about to download ~', round(as.integer(readLines(file.path(path, 'size.txt')))*10^-9, 2), 'GiB of data.') 
+					if(isTRUE(askYesNo('Do you want to proceed?'))){
+						system(paste0('wget -q --show-progress -P ', path, lnk))
+						lnkIndex <- paste0(lnk, '.tbi')
+						system(paste0('wget -q --show-progress -P ', path, lnkIndex))
+						unlink(c(file.path(path, 'size.txt'), 'NUL'))
+					} else {	
+						unlink(c(file.path(path, 'size.txt'), 'NUL'))
+						stop('Select another annotator set.')
+					}
 				}
 		}
 	)
@@ -77,8 +105,17 @@ download_clinvar <- function(path){
 	if(file.exists(file.path(path, 'clinvar.vcf.gz'))){
 		return
 	} else {
-		system(paste0('wget -q --show-progress -P ', path, ' https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz'))
-		# system('mv ./data/clinvar/clinvar.vcf.gz ./data/clinvar/clinvar_`date +"%Y-%m-%d"`.vcf.gz')
+		lnk <- ' https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz'
+		system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | head -1 > ", path, "/size.txt"))
+		message('You are about to download ~', round(as.integer(readLines(file.path(path, 'size.txt')))*10^-9, 2), 'GiB of data.') 
+		if(isTRUE(askYesNo('Do you want to proceed?'))){
+			system(paste0('wget -q --show-progress -P ', path, lnk))
+			# system('mv ./data/clinvar/clinvar.vcf.gz ./data/clinvar/clinvar_`date +"%Y-%m-%d"`.vcf.gz')
+			unlink(c(file.path(path, 'size.txt'), 'NUL'))
+			} else {
+				unlink(c(file.path(path, 'size.txt'), 'NUL'))
+				stop('Select another annotator set.')
+			}
 	}
 }
 
@@ -94,7 +131,16 @@ download_am <- function(path){
 	if(file.exists(file.path(path, 'AlphaMissense_hg38.tsv.gz'))){
 		return
 	} else {
-		system(paste0('wget -q --show-progress -P ', path, ' https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz'))
+		lnk <- ' https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz'
+		system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | head -1 > ", path, "/size.txt"))
+		message('You are about to download ~', round(as.integer(readLines(file.path(path, 'size.txt')))*10^-9, 2), 'GiB of data.') 
+		if(isTRUE(askYesNo('Do you want to proceed?'))){
+			system(paste0('wget -q --show-progress -P ', path, lnk))
+			unlink(c(file.path(path, 'size.txt'), 'NUL'))
+			} else {
+				unlink(c(file.path(path, 'size.txt'), 'NUL'))
+				stop('Select another annotator set.')
+			}
 	}
 }
 
@@ -109,10 +155,19 @@ download_am <- function(path){
 download_revel <- function(chr, path) {
 	suppressWarnings(dir.create(path, recursive = TRUE))
 	name <- paste0('revel-v1.3_segments_chrom_', chr, '.zip')
-	lnk <- paste0('https://zenodo.org/records/7072866/files/', name, '?download=1')
-	system(paste('wget -q --show-progress -O', file.path(path, name), lnk))
-	system(paste('unzip', file.path(path, name), '-d', path))
-	unlink(list.files(path, pattern = 'zip', full.names = TRUE))
+	lnk <- paste0(' https://zenodo.org/records/7072866/files/', name, '?download=1')
+	system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | head -1 > ", path, "/size.txt"))
+	message('You are about to download ~', round(as.integer(readLines(file.path(path, 'size.txt')))*10^-9, 2), 'GiB of data.') 
+	if(isTRUE(askYesNo('Do you want to proceed?'))){
+		system(paste0('wget -q --show-progress -O ', file.path(path, name), lnk))
+		unlink(c(file.path(path, 'size.txt'), 'NUL'))
+		system(paste('unzip', file.path(path, name), '-d', path))
+		unlink(list.files(path, pattern = 'zip', full.names = TRUE))
+		unlink(c(file.path(path, 'size.txt'), 'NUL'))
+		} else {
+			unlink(c(file.path(path, 'size.txt'), 'NUL'))
+			stop('Select another annotator set.')
+		}
 	return(gsub('.zip', '', file.path(path, name)))
 }
 
