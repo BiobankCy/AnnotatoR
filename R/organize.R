@@ -120,6 +120,7 @@ constructREVEL <- function(gns, path){
 #' @param gns Gene names character vector.
 #' @param databases Databases to retrieve variants from. 
 #' @param path Where data where downloaded
+#' @param type Type of gnomAD data to download.
 #' @return vcf data.frame
 #' @export
 collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'), 
@@ -139,27 +140,73 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	message('Fetching gnomad variants')
 	gnomad_vcf <- do.call('rbind', lapply(map, function(x){
-		download_gnomad(paste0('chr', unique(x$seqnames)), type, pathTmp)
-		out <- list()
-		if(type == 'both') 
-			type <- c('exomes', 'genomes')
-		for(k in type) {
-			message('Subsetting gnomAD ', k)
-			file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', 
-				unique(x$seqnames), '.vcf.bgz'))
-			file.gz.tbi <- paste(file.gz, ".tbi", sep="")
-			gr <- GenomicRanges::GRanges(paste0('chr', x$seqnames), IRanges::IRanges(x$start, x$end))
-			params <- VariantAnnotation::ScanVcfParam(which = gr)
-			vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
-			rg <- SummarizedExperiment::rowRanges(vcf)
-			out[[k]] <- data.frame(
-				CHR = as.character(GenomicRanges::seqnames(rg)), 
-				POS = as.data.frame(rg@ranges)$start, 
-				REF = as.character(S4Vectors::DataFrame(rg)$REF), 
-				ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
-			)
-		}
-		return(do.call('rbind', out))
+		switch(type,
+			exomes = {
+				download_gnomad(paste0('chr', unique(x$seqnames)), type, pathTmp)
+				out <- list()
+				for(k in type) {
+					message('Subsetting gnomAD ', k)
+					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', 
+						unique(x$seqnames), '.vcf.bgz'))
+					file.gz.tbi <- paste(file.gz, ".tbi", sep="")
+					gr <- GenomicRanges::GRanges(paste0('chr', x$seqnames), IRanges::IRanges(x$start, x$end))
+					params <- VariantAnnotation::ScanVcfParam(which = gr)
+					vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
+					rg <- SummarizedExperiment::rowRanges(vcf)
+					out[[k]] <- data.frame(
+						CHR = as.character(GenomicRanges::seqnames(rg)), 
+						POS = as.data.frame(rg@ranges)$start, 
+						REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+						ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+					)
+				}
+				return(do.call('rbind', out))
+			},
+			genomes = {
+				download_gnomad(paste0('chr', unique(x$seqnames)), type, pathTmp)
+				out <- list()
+				for(k in type) {
+					message('Subsetting gnomAD ', k)
+					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', 
+						unique(x$seqnames), '.vcf.bgz'))
+					file.gz.tbi <- paste(file.gz, ".tbi", sep="")
+					gr <- GenomicRanges::GRanges(paste0('chr', x$seqnames), IRanges::IRanges(x$start, x$end))
+					params <- VariantAnnotation::ScanVcfParam(which = gr)
+					vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
+					rg <- SummarizedExperiment::rowRanges(vcf)
+					out[[k]] <- data.frame(
+						CHR = as.character(GenomicRanges::seqnames(rg)), 
+						POS = as.data.frame(rg@ranges)$start, 
+						REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+						ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+					)
+				}
+				return(do.call('rbind', out))
+			},
+			both = {
+				types <- c('exomes', 'genomes')
+				download_gnomad(paste0('chr', unique(x$seqnames)), types, pathTmp)
+				out <- list()
+				for(k in types) {
+					message('Subsetting gnomAD ', k)
+					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', 
+						unique(x$seqnames), '.vcf.bgz'))
+					file.gz.tbi <- paste(file.gz, ".tbi", sep="")
+					gr <- GenomicRanges::GRanges(paste0('chr', x$seqnames), IRanges::IRanges(x$start, x$end))
+					params <- VariantAnnotation::ScanVcfParam(which = gr)
+					vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
+					rg <- SummarizedExperiment::rowRanges(vcf)
+					out[[k]] <- data.frame(
+						CHR = as.character(GenomicRanges::seqnames(rg)), 
+						POS = as.data.frame(rg@ranges)$start, 
+						REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+						ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+					)
+				}
+				return(do.call('rbind', out))
+			}
+
+		)
 	}))
 	rownames(gnomad_vcf) <- NULL
 

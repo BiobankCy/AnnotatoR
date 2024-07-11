@@ -6,14 +6,17 @@
 #' @param annotators Annotators to create files for.
 #' @param panelName Path and prefix for output file.  
 #' @param path Where database files will be downloaded.  
-#' @param type Type of gnomAD data to download. Applicable only for `intervar` and `all` annotators
+#' @param type Type of gnomAD data to download. Applicable only for `intervar` and `all` annotators.
+#' @param saveRaw Save all variants without any annotation. Applicable only for `intervar` and `all` annotators.
 #' @return IonReporter annotation files.
 #' @export
 annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', 'all'),
-	panelName = './results/panel', path = './dbs', type = c('exomes', 'genomes', 'both')){
+	panelName = './results/panel', path = './dbs', type = c('exomes', 'genomes', 'both'),
+	saveRaw = FALSE){
 
-	annotators <- match.arg(annotators)
 	suppressWarnings(dir.create('./results'))
+	annotators <- match.arg(annotators)
+	type <- match.arg(type)
 	switch(annotators,
 		revel = {
 			vcf_body <- constructREVEL(gns, path)
@@ -47,6 +50,12 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 		intervar = {
 			message('Collecting variants')
 			vars <- collectVars(gns, databases = 'all', path = path, type = type)
+			if(isTRUE(saveRaw)){
+				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
+					INFO = '.', FORMAT = '.', Sample = '.')
+				write.table(varsOut, file = paste0(panelName, '_raw.txt'), sep = '\t', 
+					quote = FALSE, row.names = FALSE)
+			}
 			message('Pathogenicity prediction')
 			progressr::with_progress(vars <- annotateInterVar(vars))
 			vars[is.na(vars)] <- NULL
@@ -56,7 +65,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 				crit <- tmp[,8:ncol(tmp)]
 				data.frame(CHR = paste0('chr', tmp$Chromosome),
 					POS = tmp$Position, 
-					INFO = paste0(tmp$Intervar, ' (', 
+					ID = paste0(tmp$Intervar, ' (', 
 						paste(colnames(crit)[crit == 1], collapse = '; '),
 						')'),
 					REF = tmp$Ref_allele, ALT = tmp$Alt_allele, QUAL = '.',
@@ -110,7 +119,15 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 			# ===================================
 			# InterVar
 			# ===================================
-			vars <- collectVars(gns, databases = 'all', path)
+			message('Collecting variants')
+			vars <- collectVars(gns, databases = 'all', path = path, type = type)
+			if(isTRUE(saveRaw)){
+				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
+					INFO = '.', FORMAT = '.', Sample = '.')
+				write.table(varsOut, file = paste0(panelName, '_raw.txt'), sep = '\t', 
+					quote = FALSE, row.names = FALSE)
+			}
+			message('Pathogenicity prediction')
 			progressr::with_progress(vars <- annotateInterVar(vars))
 			vars[is.na(vars)] <- NULL
 			message(length(vars), ' variants were annotated.')
@@ -119,7 +136,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 				crit <- tmp[,8:ncol(tmp)]
 				data.frame(CHR = paste0('chr', tmp$Chromosome),
 					POS = tmp$Position, 
-					INFO = paste0(tmp$Intervar, ' (', 
+					ID = paste0(tmp$Intervar, ' (', 
 						paste(colnames(crit)[crit == 1], collapse = '; '),
 						')'),
 					REF = tmp$Ref_allele, ALT = tmp$Alt_allele, QUAL = '.',

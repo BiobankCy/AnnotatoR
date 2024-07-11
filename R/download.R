@@ -3,8 +3,8 @@
 #' Downloads gnomAD vcf files according to specified chromosome.
 #'
 #' @param chr Chromosome name
-#' @param type Data types to download
-#' @param dir Where to download data
+#' @param type Type of gnomAD data to download.
+#' @param path Where to download data
 #' @return gnomAD vcf files
 #' @export
 download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'), 
@@ -15,6 +15,7 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 		exomes = {
 			f <- file.path(path, paste0('gnomad.exomes.v4.0.sites.', chr, '.vcf.bgz'))
 			if(file.exists(f)) {
+				message('gnomAD exome data for ', chr, ' were previously downloaded.')
 				return
 				} else  {
 					lnk <- paste0(' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/exomes/gnomad.exomes.v4.0.sites.', 
@@ -27,16 +28,16 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 						system(paste0('wget -q --show-progress -P ', path, lnk))
 						lnkIndex <- paste0(lnk, '.tbi')
 						system(paste0('wget -q --show-progress -P ', path, lnkIndex))
-						unlink(c(file.path(path, 'size.txt'), 'NUL'))
 					} else {
-						unlink(c(file.path(path, 'size.txt'), 'NUL'))
 						stop('Select another annotator set.')
 					}
+					unlink(c(file.path(path, 'size.txt'), 'NUL'))
 				}
 		},
 		genomes = {
 			f <- file.path(path, paste0('gnomad.genomes.v4.0.sites.', chr, '.vcf.bgz'))
 			if(file.exists(f)) {
+				message('gnomAD genome data for ', chr, ' were previously downloaded.')
 				return
 				} else  {
 					lnk <- paste0(' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/genomes/gnomad.genomes.v4.0.sites.', 
@@ -49,17 +50,17 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 						system(paste0('wget -q --show-progress -P ', path, lnk))
 						lnkIndex <- paste0(lnk, '.tbi')
 						system(paste0('wget -q --show-progress -P ', path, lnkIndex))
-						unlink(c(file.path(path, 'size.txt'), 'NUL'))
 					} else {
-						unlink(c(file.path(path, 'size.txt'), 'NUL'))
 						stop('Select another annotator set.')
 					}
+					unlink(c(file.path(path, 'size.txt'), 'NUL'))
 				}
 		},
 		both = {
 			f1 <- file.path(path, paste0('gnomad.exomes.v4.0.sites.', chr, '.vcf.bgz'))
 			f2 <- file.path(path, paste0('gnomad.genomes.v4.0.sites.', chr, '.vcf.bgz'))
 			if(file.exists(f1)) {
+				message('gnomAD exome data for ', chr, ' were previously downloaded.')
 				return
 				} else  {
 					lnk <- paste0(' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/exomes/gnomad.exomes.v4.0.sites.', 
@@ -72,13 +73,13 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 						system(paste0('wget -q --show-progress -P ', path, lnk))
 						lnkIndex <- paste0(lnk, '.tbi')
 						system(paste0('wget -q --show-progress -P ', path, lnkIndex))
-						unlink(c(file.path(path, 'size.txt'), 'NUL'))
 					} else {
-						unlink(c(file.path(path, 'size.txt'), 'NUL'))
 						stop('Select another annotator set.')
 					}
+					unlink(c(file.path(path, 'size.txt'), 'NUL'))
 				}
 			if(file.exists(f2)) {
+				message('gnomAD genome data for ', chr, ' were previously downloaded.')
 				return
 				} else  {	
 					lnk <- paste0(' https://storage.googleapis.com/gcp-public-data--gnomad/release/4.0/vcf/genomes/gnomad.genomes.v4.0.sites.', 
@@ -91,11 +92,10 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 						system(paste0('wget -q --show-progress -P ', path, lnk))
 						lnkIndex <- paste0(lnk, '.tbi')
 						system(paste0('wget -q --show-progress -P ', path, lnkIndex))
-						unlink(c(file.path(path, 'size.txt'), 'NUL'))
 					} else {	
-						unlink(c(file.path(path, 'size.txt'), 'NUL'))
 						stop('Select another annotator set.')
 					}
+					unlink(c(file.path(path, 'size.txt'), 'NUL'))
 				}
 		}
 	)
@@ -111,6 +111,7 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 download_clinvar <- function(path){
 	suppressWarnings(dir.create(path, recursive = TRUE))
 	if(file.exists(file.path(path, 'clinvar.vcf.gz'))){
+		message('ClinVar data were previously downloaded.')
 		return
 	} else {
 		lnk <- ' https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz'
@@ -121,11 +122,10 @@ download_clinvar <- function(path){
 		if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
 			system(paste0('wget -q --show-progress -P ', path, lnk))
 			# system('mv ./data/clinvar/clinvar.vcf.gz ./data/clinvar/clinvar_`date +"%Y-%m-%d"`.vcf.gz')
-			unlink(c(file.path(path, 'size.txt'), 'NUL'))
 			} else {
-				unlink(c(file.path(path, 'size.txt'), 'NUL'))
 				stop('Select another annotator set.')
 			}
+		unlink(c(file.path(path, 'size.txt'), 'NUL'))
 	}
 }
 
@@ -139,6 +139,7 @@ download_clinvar <- function(path){
 download_am <- function(path){
 	suppressWarnings(dir.create(path, recursive = TRUE))
 	if(file.exists(file.path(path, 'AlphaMissense_hg38.tsv.gz'))){
+		message('AlphaMissense data were previously downloaded.')
 		return
 	} else {
 		lnk <- ' https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz'
@@ -148,11 +149,10 @@ download_am <- function(path){
 			' of data.') 
 		if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
 			system(paste0('wget -q --show-progress -P ', path, lnk))
-			unlink(c(file.path(path, 'size.txt'), 'NUL'))
 			} else {
-				unlink(c(file.path(path, 'size.txt'), 'NUL'))
 				stop('Select another annotator set.')
 			}
+		unlink(c(file.path(path, 'size.txt'), 'NUL'))
 	}
 }
 
@@ -166,23 +166,26 @@ download_am <- function(path){
 #' @export
 download_revel <- function(chr, path) {
 	suppressWarnings(dir.create(path, recursive = TRUE))
-	name <- paste0('revel-v1.3_segments_chrom_', chr, '.zip')
-	lnk <- paste0(' https://zenodo.org/records/7072866/files/', name, '?download=1')
-	system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | head -1 > ", path, "/size.txt"))
-	message(path)
-	message('You are about to download ~', 
-		utils:::format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
-		' of data.') 
-	if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
-		system(paste0('wget -q --show-progress -O ', file.path(path, name), lnk))
+	name <- paste0('revel-v1.3_segments_chrom_', chr)
+	if(file.exists(file.path(path, name))){
+		message('REVEL data for chr', chr, ' were previously downloaded.')
+		return
+	} else {
+		name <- paste0(name, '.zip')
+		lnk <- paste0(' https://zenodo.org/records/7072866/files/', name, '?download=1')
+		system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | head -1 > ", path, "/size.txt"))
+		message('You are about to download ~', 
+			utils:::format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
+			' of data.') 
+		if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
+			system(paste0('wget -q --show-progress -O ', file.path(path, name), lnk))
+			system(paste('unzip', file.path(path, name), '-d', path))
+			unlink(list.files(path, pattern = 'zip', full.names = TRUE))
+			} else {
+				stop('Select another annotator set.')
+			}
 		unlink(c(file.path(path, 'size.txt'), 'NUL'))
-		system(paste('unzip', file.path(path, name), '-d', path))
-		unlink(list.files(path, pattern = 'zip', full.names = TRUE))
-		unlink(c(file.path(path, 'size.txt'), 'NUL'))
-		} else {
-			# unlink(c(file.path(path, 'size.txt'), 'NUL'))
-			stop('Select another annotator set.')
-		}
+	}
 	return(gsub('.zip', '', file.path(path, name)))
 }
 

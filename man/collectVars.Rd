@@ -4,7 +4,12 @@
 \alias{collectVars}
 \title{Collect known variants.}
 \usage{
-collectVars(gns, databases = c("gnomad", "clinvar", "lovd3", "all"), path)
+collectVars(
+  gns,
+  databases = c("gnomad", "clinvar", "lovd3", "all"),
+  path,
+  type = c("exomes", "genomes", "both")
+)
 }
 \arguments{
 \item{gns}{Gene names character vector.}
@@ -12,6 +17,8 @@ collectVars(gns, databases = c("gnomad", "clinvar", "lovd3", "all"), path)
 \item{databases}{Databases to retrieve variants from.}
 
 \item{path}{Where data where downloaded}
+
+\item{type}{Type of gnomAD data to download.}
 }
 \value{
 vcf data.frame

@@ -9,9 +9,9 @@ download_gnomad(chr, type = c("exomes", "genomes", "both"), path)
 \arguments{
 \item{chr}{Chromosome name}
 
-\item{type}{Data types to download}
+\item{type}{Type of gnomAD data to download.}
 
-\item{dir}{Where to download data}
+\item{path}{Where to download data}
 }
 \value{
 gnomAD vcf files

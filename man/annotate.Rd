@@ -8,7 +8,9 @@ annotate(
   gns,
   annotators = c("revel", "alphamissense", "intervar", "all"),
   panelName = "./results/panel",
-  path = "./dbs"
+  path = "./dbs",
+  type = c("exomes", "genomes", "both"),
+  saveRaw = FALSE
 )
 }
 \arguments{
@@ -19,6 +21,10 @@ annotate(
 \item{panelName}{Path and prefix for output file.}
 
 \item{path}{Where database files will be downloaded.}
+
+\item{type}{Type of gnomAD data to download. Applicable only for \code{intervar} and \code{all} annotators.}
+
+\item{saveRaw}{Save all variants without any annotation. Applicable only for \code{intervar} and \code{all} annotators.}
 }
 \value{
 IonReporter annotation files.
