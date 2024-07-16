@@ -10,7 +10,7 @@
 #' @param saveRaw Save all variants without any annotation. Applicable only for `intervar` and `all` annotators.
 #' @return IonReporter annotation files.
 #' @export
-annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', 'all'),
+annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig', 'intervar', 'all'),
 	panelName = './results/panel', path = './dbs', type = c('exomes', 'genomes', 'both'),
 	saveRaw = FALSE){
 
@@ -21,7 +21,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 		revel = {
 			vcf_body <- constructREVEL(gns, path)
 			vcf_header <- c(
-				"##fileformat=VCFv4.2",
+				"##fileformat=VCFv4.1",
 				"##HITLEVEL=allele",
 				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
 			)
@@ -35,7 +35,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 		alphamissense = {
 			vcf_body <- constructAM(gns, path)
 			vcf_header <- c(
-				"##fileformat=VCFv4.2",
+				"##fileformat=VCFv4.1",
 				"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
 				"##HITLEVEL=genotype",
 				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
@@ -44,6 +44,20 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			write.table(vcf_body, file = paste0(panelName, '_alphaMissense.vcf'), 
+				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
+				na = '')
+		},
+		clinvar_sig = {
+			vcf_body <- constructClinVar(gns, path)
+			vcf_header <- c(
+				"##fileformat=VCFv4.1",
+				"##HITLEVEL=allele",
+				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
+			)
+			write.table(vcf_header, file = paste0(panelName, '_clinvar_sig.vcf'), 
+				sep = '\t', quote = FALSE, col.names = FALSE, 
+				row.names = FALSE)
+			write.table(vcf_body, file =  paste0(panelName, '_clinvar_sig.vcf'), 
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 		},
@@ -72,7 +86,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 					FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
 				}))
 			vcf_header <- c(
-				"##fileformat=VCFv4.2",
+				"##fileformat=VCFv4.1",
 				"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
 				"##HITLEVEL=genotype",
 				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
@@ -88,7 +102,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 			# ===================================
 			vcf_body <- constructREVEL(gns, path)
 			vcf_header <- c(
-				"##fileformat=VCFv4.2",
+				"##fileformat=VCFv4.1",
 				"##HITLEVEL=allele",
 				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
 			)
@@ -104,7 +118,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 			# ===================================
 			vcf_body <- constructAM(gns, path)
 			vcf_header <- c(
-				"##fileformat=VCFv4.2",
+				"##fileformat=VCFv4.1",
 				"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
 				"##HITLEVEL=genotype",
 				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
@@ -143,7 +157,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'intervar', '
 					FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
 				}))
 			vcf_header <- c(
-				"##fileformat=VCFv4.2",
+				"##fileformat=VCFv4.1",
 				"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
 				"##HITLEVEL=genotype",
 				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"

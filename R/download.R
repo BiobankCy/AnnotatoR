@@ -115,12 +115,14 @@ download_clinvar <- function(path){
 		return
 	} else {
 		lnk <- ' https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz'
+		lnkIndex <- paste0(lnk, '.tbi')
 		system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | head -1 > ", path, "/size.txt"))
 		message('You are about to download ~', 
 			utils:::format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
 			' of data.') 
 		if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
 			system(paste0('wget -q --show-progress -P ', path, lnk))
+			system(paste0('wget -q --show-progress -P ', path, lnkIndex))
 			# system('mv ./data/clinvar/clinvar.vcf.gz ./data/clinvar/clinvar_`date +"%Y-%m-%d"`.vcf.gz')
 			} else {
 				stop('Select another annotator set.')

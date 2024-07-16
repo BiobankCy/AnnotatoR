@@ -5,7 +5,7 @@
 #' Download and organize AlphaMissense predictions for specific genes.
 #'
 #' @param gns Gene names character vector.
-#' @param path Where data where downloaded
+#' @param path Where data were downloaded
 #' @return vcf data.frame
 #' @export
 constructAM <- function(gns, path){
@@ -49,7 +49,7 @@ constructAM <- function(gns, path){
 #' Download and organize REVEL meta-predictions for specific genes.
 #'
 #' @param gns Gene names character vector.
-#' @param path Where data where downloaded
+#' @param path Where data were downloaded
 #' @return vcf data.frame
 #' @export
 constructREVEL <- function(gns, path){
@@ -95,7 +95,7 @@ constructREVEL <- function(gns, path){
 					segs$end > map[[i]][k, 'end'])]
 			)
 			revel_vcf <- data.frame(CHR = paste0('chr', revel$chr),
-				POS = revel$grch38_pos, INFO = round(revel$REVEL, 2), 
+				POS = revel$grch38_pos, ID = round(revel$REVEL, 2), 
 				REF = revel$ref, ALT = revel$alt, QUAL = '.',
 				FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
 			# # Maintain variants within panel genes start/end +/- 1000 nts
@@ -112,6 +112,55 @@ constructREVEL <- function(gns, path){
 }
 
 
+#' Contruct ClinVar annotation file.
+#'
+#' Download and organize ClinVar significance classification with
+#' review status level for specific genes.
+#'
+#' @param gns Gene names character vector.
+#' @param path Where data were downloaded
+#' @return vcf data.frame
+#' @export
+constructClinVar <- function(gns, path){
+	path <- file.path(path, 'clinvar')
+	suppressWarnings(dir.create(path, recursive = TRUE))
+
+	message('Fetching clinvar variants')
+	download_clinvar(path)
+	message('Subsetting clinvar variants')
+	file.gz <- file.path(path, 'clinvar.vcf.gz')
+	file.gz.tbi <- paste(file.gz, ".tbi", sep="")
+	if(!(file.exists(file.gz.tbi)))
+	    Rsamtools::indexTabix(file.gz, format="vcf")
+	# CLNREVSTAT: review status for the aggregate germline classification
+	params <- VariantAnnotation::ScanVcfParam(info = c('GENEINFO', 'CLNSIG', 'CLNREVSTAT'))
+	vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
+	rg <- SummarizedExperiment::rowRanges(vcf)
+	inf <- VariantAnnotation::info(vcf)
+	clinvar_vcf <- data.frame(
+		CHR = as.character(GenomicRanges::seqnames(rg)), 
+		POS = as.data.frame(rg@ranges)$start,
+		REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+		ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT)),
+		GENEINFO = as.character(inf$GENEINFO),
+		SIG = as.character(unlist(lapply(
+			S4Vectors::DataFrame(inf)$CLNSIG, paste, collapse = ''))),
+		REVSTAT= as.character(unlist(lapply(
+			S4Vectors::DataFrame(inf)$CLNREVSTAT, paste, collapse = ',')))
+	)
+	# Genes of interest & at least one star
+	clinvar_vcf <- merge(
+		clinvar_vcf[grep(paste(gns, collapse = '|'), clinvar_vcf$GENEINFO), ],
+		revstatus_map[which(revstatus_map$stars != 'none'), ], 
+		by = 'REVSTAT'
+	)
+	clinvar_vcf <- data.frame(CHR = paste0('chr', clinvar_vcf$CHR),
+		POS = clinvar_vcf$POS, ID = paste0(clinvar_vcf$SIG, '(', clinvar_vcf$stars, ')'), 
+		REF = clinvar_vcf$REF, ALT = clinvar_vcf$ALT, QUAL = '.',
+		FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
+	return(clinvar_vcf)
+}
+
 #' Collect known variants.
 #'
 #' Collect known variants for specific genes from public resources
@@ -119,7 +168,7 @@ constructREVEL <- function(gns, path){
 #' 
 #' @param gns Gene names character vector.
 #' @param databases Databases to retrieve variants from. 
-#' @param path Where data where downloaded
+#' @param path Where data were downloaded
 #' @param type Type of gnomAD data to download.
 #' @return vcf data.frame
 #' @export
