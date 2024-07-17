@@ -20,12 +20,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 	switch(annotators,
 		revel = {
 			vcf_body <- constructREVEL(gns, path)
-			vcf_header <- c(
-				"##fileformat=VCFv4.1",
-				"##HITLEVEL=allele",
-				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
-			)
-			write.table(vcf_header, file = paste0(panelName, '_revel.vcf'), 
+			write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			write.table(vcf_body, file =  paste0(panelName, '_revel.vcf'), 
@@ -34,13 +29,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 		},
 		alphamissense = {
 			vcf_body <- constructAM(gns, path)
-			vcf_header <- c(
-				"##fileformat=VCFv4.1",
-				"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
-				"##HITLEVEL=genotype",
-				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
-			)
-			write.table(vcf_header, file = paste0(panelName, '_alphaMissense.vcf'), 
+			write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			write.table(vcf_body, file = paste0(panelName, '_alphaMissense.vcf'), 
@@ -49,12 +38,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 		},
 		clinvar_sig = {
 			vcf_body <- constructClinVar(gns, path)
-			vcf_header <- c(
-				"##fileformat=VCFv4.1",
-				"##HITLEVEL=allele",
-				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
-			)
-			write.table(vcf_header, file = paste0(panelName, '_clinvar_sig.vcf'), 
+			write.table(vcf_header_allele, file = paste0(panelName, '_clinvar_sig.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			write.table(vcf_body, file =  paste0(panelName, '_clinvar_sig.vcf'), 
@@ -85,13 +69,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 					REF = tmp$Ref_allele, ALT = tmp$Alt_allele, QUAL = '.',
 					FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
 				}))
-			vcf_header <- c(
-				"##fileformat=VCFv4.1",
-				"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
-				"##HITLEVEL=genotype",
-				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
-			)
-			write.table(vcf_header, file = paste0(panelName, '_intervar.vcf'), sep = '\t', quote = FALSE, col.names = FALSE, 
+			write.table(vcf_header_genotype, file = paste0(panelName, '_intervar.vcf'), sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			write.table(vcf_body, file = paste0(panelName, '_intervar.vcf'), append = TRUE, sep = '\t', quote = FALSE, 
 				col.names = FALSE, row.names = FALSE, na = '')
@@ -101,12 +79,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 			# REVEL
 			# ===================================
 			vcf_body <- constructREVEL(gns, path)
-			vcf_header <- c(
-				"##fileformat=VCFv4.1",
-				"##HITLEVEL=allele",
-				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
-			)
-			write.table(vcf_header, file = paste0(panelName, '_revel.vcf'), 
+			write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			write.table(vcf_body, file =  paste0(panelName, '_revel.vcf'), 
@@ -117,13 +90,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 			# AlphaMissense
 			# ===================================
 			vcf_body <- constructAM(gns, path)
-			vcf_header <- c(
-				"##fileformat=VCFv4.1",
-				"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
-				"##HITLEVEL=genotype",
-				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
-			)
-			write.table(vcf_header, file = paste0(panelName, '_alphaMissense.vcf'), 
+			write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			write.table(vcf_body, file = paste0(panelName, '_alphaMissense.vcf'), 
@@ -156,13 +123,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 					REF = tmp$Ref_allele, ALT = tmp$Alt_allele, QUAL = '.',
 					FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
 				}))
-			vcf_header <- c(
-				"##fileformat=VCFv4.1",
-				"##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">",
-				"##HITLEVEL=genotype",
-				"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample"
-			)
-			write.table(vcf_header, file = paste0(panelName, '_intervar.vcf'), sep = '\t', quote = FALSE, col.names = FALSE, 
+			write.table(vcf_header_genotype, file = paste0(panelName, '_intervar.vcf'), sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			write.table(vcf_body, file = paste0(panelName, '_intervar.vcf'), append = TRUE, sep = '\t', quote = FALSE, 
 				col.names = FALSE, row.names = FALSE, na = '')
