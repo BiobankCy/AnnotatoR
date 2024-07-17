@@ -11,11 +11,12 @@
 #' @return IonReporter annotation files.
 #' @export
 annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig', 'intervar', 'all'),
-	panelName = './results/panel', path = './dbs', type = c('exomes', 'genomes', 'both'),
-	saveRaw = FALSE){
+	databases = c('gnomad', 'clinvar', 'lovd3', 'all'), panelName = './results/panel', 
+	path = './dbs', type = c('exomes', 'genomes', 'both'), saveRaw = FALSE){
 
 	suppressWarnings(dir.create('./results'))
 	annotators <- match.arg(annotators)
+	databases <- match.arg(databases)
 	type <- match.arg(type)
 	switch(annotators,
 		revel = {
@@ -47,30 +48,36 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 		},
 		intervar = {
 			message('Collecting variants')
-			vars <- collectVars(gns, databases = 'all', path = path, type = type)
+			vars <- collectVars(gns, databases, path, type)
 			if(isTRUE(saveRaw)){
 				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
 					INFO = '.', FORMAT = '.', Sample = '.')
 				write.table(varsOut, file = paste0(panelName, '_raw.txt'), sep = '\t', 
 					quote = FALSE, row.names = FALSE)
 			}
-			message('Pathogenicity prediction')
-			progressr::with_progress(vars <- annotateInterVar(vars))
-			vars[is.na(vars)] <- NULL
-			message(length(vars), ' variants were annotated.')
-			vcf_body <- do.call('rbind', lapply(vars, function(x){
-				tmp <- as.data.frame(x)
-				crit <- tmp[,8:ncol(tmp)]
-				data.frame(CHR = paste0('chr', tmp$Chromosome),
-					POS = tmp$Position, 
-					ID = paste0(tmp$Intervar, ' (', 
-						paste(colnames(crit)[crit == 1], collapse = '; '),
-						')'),
-					REF = tmp$Ref_allele, ALT = tmp$Alt_allele, QUAL = '.',
-					FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
-				}))
-			write.table(vcf_header_genotype, file = paste0(panelName, '_intervar.vcf'), sep = '\t', quote = FALSE, col.names = FALSE, 
-				row.names = FALSE)
+			if(nrow(vars) != 0){
+				message('Pathogenicity prediction')
+				progressr::with_progress(vars <- annotateInterVar(vars))
+				vars[is.na(vars)] <- NULL
+				message(length(vars), ' variants were annotated.')
+				vcf_body <- do.call('rbind', lapply(vars, function(x){
+					tmp <- as.data.frame(x)
+					crit <- tmp[,8:ncol(tmp)]
+					data.frame(CHR = paste0('chr', tmp$Chromosome),
+						POS = tmp$Position, 
+						ID = paste0(tmp$Intervar, ' (', 
+							paste(colnames(crit)[crit == 1], collapse = '; '),
+							')'),
+						REF = tmp$Ref_allele, ALT = tmp$Alt_allele, QUAL = '.',
+						FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
+					}))
+				} else {
+					message('Pathogenicity prediction aborted.\nNo variants found.')
+					vcf_body <- data.frame(CHR = character(), POS = character(),
+						REF = character(), ALT = character())
+				}
+			write.table(vcf_header_genotype, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), 
+				sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
 			write.table(vcf_body, file = paste0(panelName, '_intervar.vcf'), append = TRUE, sep = '\t', quote = FALSE, 
 				col.names = FALSE, row.names = FALSE, na = '')
 		},
@@ -101,30 +108,36 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 			# InterVar
 			# ===================================
 			message('Collecting variants')
-			vars <- collectVars(gns, databases = 'all', path = path, type = type)
+			vars <- collectVars(gns, databases, path, type)
 			if(isTRUE(saveRaw)){
 				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
 					INFO = '.', FORMAT = '.', Sample = '.')
 				write.table(varsOut, file = paste0(panelName, '_raw.txt'), sep = '\t', 
 					quote = FALSE, row.names = FALSE)
 			}
-			message('Pathogenicity prediction')
-			progressr::with_progress(vars <- annotateInterVar(vars))
-			vars[is.na(vars)] <- NULL
-			message(length(vars), ' variants were annotated.')
-			vcf_body <- do.call('rbind', lapply(vars, function(x){
-				tmp <- as.data.frame(x)
-				crit <- tmp[,8:ncol(tmp)]
-				data.frame(CHR = paste0('chr', tmp$Chromosome),
-					POS = tmp$Position, 
-					ID = paste0(tmp$Intervar, ' (', 
-						paste(colnames(crit)[crit == 1], collapse = '; '),
-						')'),
-					REF = tmp$Ref_allele, ALT = tmp$Alt_allele, QUAL = '.',
-					FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
-				}))
-			write.table(vcf_header_genotype, file = paste0(panelName, '_intervar.vcf'), sep = '\t', quote = FALSE, col.names = FALSE, 
-				row.names = FALSE)
+			if(nrow(vars) != 0){
+				message('Pathogenicity prediction')
+				progressr::with_progress(vars <- annotateInterVar(vars))
+				vars[is.na(vars)] <- NULL
+				message(length(vars), ' variants were annotated.')
+				vcf_body <- do.call('rbind', lapply(vars, function(x){
+					tmp <- as.data.frame(x)
+					crit <- tmp[,8:ncol(tmp)]
+					data.frame(CHR = paste0('chr', tmp$Chromosome),
+						POS = tmp$Position, 
+						ID = paste0(tmp$Intervar, ' (', 
+							paste(colnames(crit)[crit == 1], collapse = '; '),
+							')'),
+						REF = tmp$Ref_allele, ALT = tmp$Alt_allele, QUAL = '.',
+						FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
+					}))
+				} else {
+					message('Pathogenicity prediction aborted.\nNo variants found.')
+					vcf_body <- data.frame(CHR = character(), POS = character(),
+						REF = character(), ALT = character())
+				}
+			write.table(vcf_header_genotype, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), 
+				sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
 			write.table(vcf_body, file = paste0(panelName, '_intervar.vcf'), append = TRUE, sep = '\t', quote = FALSE, 
 				col.names = FALSE, row.names = FALSE, na = '')
 		}

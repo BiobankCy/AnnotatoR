@@ -163,8 +163,8 @@ constructClinVar <- function(gns, path){
 
 #' Collect known variants.
 #'
-#' Collect known variants for specific genes from public resources
-#' (gnomAD, ClinVar, LOVD3).
+#' A wrapper function to collect known variants for specific genes
+#' from public resources (gnomAD, ClinVar, LOVD3).
 #' 
 #' @param gns Gene names character vector.
 #' @param databases Databases to retrieve variants from. 
@@ -184,9 +184,40 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 	map$seqnames <- as.character(map$seqnames)
 	map <- split(map, f = map$seqnames)
 
-	# gnomad
+	databases <- match.arg(databases)
+	type <- match.arg(type)
+	switch(databases, 
+		gnomad = {
+			out <- gnomad_fetch(map, type, path)
+		},
+		clinvar = {
+			out <- clinvar_fetch(gns, path)
+		},
+		lovd3 = {
+			out <- lovd3_fetch(gns, path)
+		},
+		all = {
+			a <- gnomad_fetch(map, type, path)
+			b <- clinvar_fetch(gns, path)
+			c <- lovd3_fetch(gns, path)
+			out <- unique(rbind(a, b, c))
+		}
+	)
+	return(out)
+}
+
+#' Fetch gnomAD variants.
+#'
+#' Collect known variants for specific genes from gnomAD
+#' 
+#' @param map Gene data as in map. 
+#' @param type Type of gnomAD data to download.
+#' @param path Where data were downloaded
+#' @return vcf data.frame
+gnomad_fetch <- function(map, type = c('exomes', 'genomes', 'both'), path){
 	pathTmp <- file.path(path, 'gnomad')
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
+	type <- match.arg(type)
 	message('Fetching gnomad variants')
 	gnomad_vcf <- do.call('rbind', lapply(map, function(x){
 		switch(type,
@@ -233,10 +264,9 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 				return(do.call('rbind', out))
 			},
 			both = {
-				types <- c('exomes', 'genomes')
-				download_gnomad(paste0('chr', unique(x$seqnames)), types, pathTmp)
+				download_gnomad(paste0('chr', unique(x$seqnames)), type, pathTmp)
 				out <- list()
-				for(k in types) {
+				for(k in c('exomes', 'genomes')) {
 					message('Subsetting gnomAD ', k)
 					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', 
 						unique(x$seqnames), '.vcf.bgz'))
@@ -258,8 +288,21 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 		)
 	}))
 	rownames(gnomad_vcf) <- NULL
+	unlink(c(
+		file.path(pathTmp, 'tmp_gen.vcf'), 
+		file.path(pathTmp, 'tmp_ex.vcf')
+	))
+	return(gnomad_vcf)
+}
 
-	# clinvar
+#' Fetch ClinVar variants.
+#'
+#' Collect known variants for specific genes from ClinVar
+#' 
+#' @param gns Gene names character vector.
+#' @param path Where data were downloaded
+#' @return vcf data.frame
+clinvar_fetch <- function(gns, path){
 	pathTmp <- file.path(path, 'clinvar')
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	message('Fetching clinvar variants')
@@ -285,8 +328,20 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 	# clinvar_vcf <- read.table(file.path(pathTmp, 'clinvar_tmp.vcf'))
 	# colnames(clinvar_vcf) <- c('CHR', 'POS', 'REF', 'ALT', 'GENEINFO')
 	clinvar_vcf <- clinvar_vcf[grep(paste(gns, collapse = '|'), clinvar_vcf$GENEINFO), 1:4]
+	unlink(c(
+		file.path(pathTmp, 'clinvar_tmp.vcf') 
+	))
+	return(clinvar_vcf)
+}
 
-	# lovd3
+#' Fetch lovd3 variants.
+#'
+#' Collect known variants for specific genes from lovd3
+#' 
+#' @param gns Gene names character vector.
+#' @param path Where data were downloaded
+#' @return vcf data.frame
+lovd3_fetch <- function(gns, path){
 	pathTmp <- file.path(path, 'lovd3')
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	message('Retrieving LOVD3 variants')
@@ -335,17 +390,8 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 			lovd3_vcf <- data.frame(CHR = character(), POS = character(),
 				REF = character(), ALT = character())
 		}
-
-	# Clean
 	unlink(c(
-		file.path(path, 'gnomad', 'tmp_gen.vcf'), 
-		file.path(path, 'gnomad', 'tmp_ex.vcf'), 
-		file.path(path, 'clinvar', 'clinvar_tmp.vcf'), 
-		file.path(path, 'lovd3', '*')
+		file.path(pathTmp, '*')
 	))
-
-	out <- unique(rbind(gnomad_vcf, clinvar_vcf, lovd3_vcf))
-	return(out)
-
+	return(lovd3_vcf)
 }
-
