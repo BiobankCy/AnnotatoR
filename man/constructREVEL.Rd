@@ -9,7 +9,7 @@ constructREVEL(gns, path)
 \arguments{
 \item{gns}{Gene names character vector.}
 
-\item{path}{Where data where downloaded}
+\item{path}{Where data were downloaded}
 }
 \value{
 vcf data.frame

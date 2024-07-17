@@ -16,7 +16,7 @@ collectVars(
 
 \item{databases}{Databases to retrieve variants from.}
 
-\item{path}{Where data where downloaded}
+\item{path}{Where data were downloaded}
 
 \item{type}{Type of gnomAD data to download.}
 }
@@ -24,6 +24,6 @@ collectVars(
 vcf data.frame
 }
 \description{
-Collect known variants for specific genes from public resources
-(gnomAD, ClinVar, LOVD3).
+A wrapper function to collect known variants for specific genes
+from public resources (gnomAD, ClinVar, LOVD3).
 }
