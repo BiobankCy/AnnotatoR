@@ -21,6 +21,7 @@ constructAM <- function(gns, path){
 	gns_id <- gns_id[grep('ENSG', gns_id)]
 	map <- as.data.frame(tranges[GenomicRanges::elementMetadata(tranges)$gene_id %in% gns_id])
 	map$seqnames <- as.character(map$seqnames)
+	map <- map[which(map$seqnames %in% c(as.character(1:22), 'MT', 'X', 'Y')), ]
 
 	message('Subsetting AlphaMissense')
 	system(paste0("gzip -cdk ", file.path(path, "AlphaMissense_hg38.tsv.gz"),
@@ -63,6 +64,7 @@ constructREVEL <- function(gns, path){
 		granges[GenomicRanges::elementMetadata(granges)$symbol %in% gns])
 	map <- map[grep('ENSG', map$gene_id), ]
 	map$seqnames <- as.character(map$seqnames)
+	map <- map[which(map$seqnames %in% c(as.character(1:22), 'MT', 'X', 'Y')), ]
 	map <- split(map, f = map$seqnames)
 
 	# Download revel data files for respective chromosomes
@@ -182,6 +184,7 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 	map <- as.data.frame(granges[GenomicRanges::elementMetadata(granges)$symbol %in% gns])
 	map <- map[grep('ENSG', map$gene_id), ]
 	map$seqnames <- as.character(map$seqnames)
+	map <- map[which(map$seqnames %in% c(as.character(1:22), 'MT', 'X', 'Y')), ]
 	map <- split(map, f = map$seqnames)
 
 	databases <- match.arg(databases)
