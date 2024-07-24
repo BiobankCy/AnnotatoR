@@ -22,8 +22,8 @@ constructAM <- function(gns, path){
 	system(paste0("gzip -cdk ", file.path(path, "AlphaMissense_hg38.tsv.gz"),
 		" | head -n 4 | tail -n 1 > ", file.path(path, "alphaMissense_header.txt")))
 
-	am <- read.delim(file.path(path, 'alphaMissense_sel.txt'), header = FALSE)
-	colnames(am) <- read.delim(file.path(path, 'alphaMissense_header.txt'), header = FALSE)
+	am <- utils::read.delim(file.path(path, 'alphaMissense_sel.txt'), header = FALSE)
+	colnames(am) <- utils::read.delim(file.path(path, 'alphaMissense_header.txt'), header = FALSE)
 	am$transcript_id <- gsub('\\..*', '', am$transcript_id)
 	am <- merge(am, map, by.x = 'transcript_id', by.y = 'tx_id')
 	# Round-up am pathogenicity score (for easier filter chain creation)
@@ -77,7 +77,7 @@ constructREVEL <- function(gns, path){
 
 		# Gather data per gene
 		for(k in rownames(map[[i]])){
-			revel <- read.csv(
+			revel <- utils::read.csv(
 				list.files(name, full.names = TRUE)[which(
 					segs$start < map[[i]][k, 'start'] & 
 					segs$end > map[[i]][k, 'end'])]
@@ -225,7 +225,7 @@ gnomad_fetch_manual <- function(map, path){
 			full.names = TRUE)
 		if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
 			gnomad_vcf <- do.call('rbind', lapply(as.list(files), function(x){
-					tmp <- read.delim(x, sep = ',')[,c('Chromosome', 'Position', 'Reference', 'Alternate')]
+					tmp <- utils::read.delim(x, sep = ',')[,c('Chromosome', 'Position', 'Reference', 'Alternate')]
 					colnames(tmp) <- c('CHR', 'POS', 'REF', 'ALT')
 					tmp$CHR <- paste0('chr', tmp$CHR)
 					return(tmp)
@@ -390,13 +390,13 @@ lovd3_fetch <- function(gns, path){
 			# Genomic data
 			start <- grep('\\#\\# Variants_On_Genome', tmp)
 			stop <- grep('\\#\\# Variants_On_Transcripts', tmp) -4
-			df_genom <- read.delim(i, nrows = stop - (start + 2), skip = start + 3, header = FALSE)
+			df_genom <- utils::read.delim(i, nrows = stop - (start + 2), skip = start + 3, header = FALSE)
 			colnames(df_genom) <- gsub('\\"\\{\\{|\\}\\}\\"', '', strsplit(tmp[start + 3], split = '\t')[[1]])
 
 			# Transcript data
 			start <- grep('\\#\\# Variants_On_Transcripts', tmp)
 			stop <- grep('\\#\\# Screenings_To_Variants', tmp) -4
-			df_trans <- read.delim(i, nrows = stop - (start + 3), skip = start + 4, header = FALSE)
+			df_trans <- utils::read.delim(i, nrows = stop - (start + 3), skip = start + 4, header = FALSE)
 			colnames(df_trans) <- gsub('\\"\\{\\{|\\}\\}\\"', '', strsplit(tmp[start + 4], split = '\t')[[1]])
 
 			# Required columns

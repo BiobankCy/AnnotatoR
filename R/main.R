@@ -4,6 +4,7 @@
 #'
 #' @param gns Gene names character vector.
 #' @param annotators Annotators to create files for.
+#' @param databases Databases to fetch annotation from. 
 #' @param panelName Path and prefix for output file.  
 #' @param path Where database files will be downloaded.  
 #' @param type Type of gnomAD data to download. Applicable only for `intervar` and `all` annotators.
@@ -21,28 +22,28 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 	switch(annotators,
 		revel = {
 			vcf_body <- constructREVEL(gns, path)
-			write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
+			utils::write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
-			write.table(vcf_body, file =  paste0(panelName, '_revel.vcf'), 
+			utils::write.table(vcf_body, file =  paste0(panelName, '_revel.vcf'), 
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 		},
 		alphamissense = {
 			vcf_body <- constructAM(gns, path)
-			write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
+			utils::write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
-			write.table(vcf_body, file = paste0(panelName, '_alphaMissense.vcf'), 
+			utils::write.table(vcf_body, file = paste0(panelName, '_alphaMissense.vcf'), 
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 		},
 		clinvar_sig = {
 			vcf_body <- constructClinVar(gns, path)
-			write.table(vcf_header_allele, file = paste0(panelName, '_clinvar_sig.vcf'), 
+			utils::write.table(vcf_header_allele, file = paste0(panelName, '_clinvar_sig.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
-			write.table(vcf_body, file =  paste0(panelName, '_clinvar_sig.vcf'), 
+			utils::write.table(vcf_body, file =  paste0(panelName, '_clinvar_sig.vcf'), 
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 		},
@@ -52,7 +53,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 			if(isTRUE(saveRaw)){
 				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
 					INFO = '.', FORMAT = '.', Sample = '.')
-				write.table(varsOut, file = paste0(panelName, '_raw.txt'), sep = '\t', 
+				utils::write.table(varsOut, file = paste0(panelName, '_raw.txt'), sep = '\t', 
 					quote = FALSE, row.names = FALSE)
 			}
 			if(nrow(vars) != 0){
@@ -76,9 +77,9 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 					vcf_body <- data.frame(CHR = character(), POS = character(),
 						REF = character(), ALT = character())
 				}
-			write.table(vcf_header_genotype, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), 
+			utils::write.table(vcf_header_genotype, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
-			write.table(vcf_body, file = paste0(panelName, '_intervar.vcf'), append = TRUE, sep = '\t', quote = FALSE, 
+			utils::write.table(vcf_body, file = paste0(panelName, '_intervar.vcf'), append = TRUE, sep = '\t', quote = FALSE, 
 				col.names = FALSE, row.names = FALSE, na = '')
 		},
 		all = {
@@ -86,10 +87,10 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 			# REVEL
 			# ===================================
 			vcf_body <- constructREVEL(gns, path)
-			write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
+			utils::write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
-			write.table(vcf_body, file =  paste0(panelName, '_revel.vcf'), 
+			utils::write.table(vcf_body, file =  paste0(panelName, '_revel.vcf'), 
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 
@@ -97,10 +98,10 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 			# AlphaMissense
 			# ===================================
 			vcf_body <- constructAM(gns, path)
-			write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
+			utils::write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
-			write.table(vcf_body, file = paste0(panelName, '_alphaMissense.vcf'), 
+			utils::write.table(vcf_body, file = paste0(panelName, '_alphaMissense.vcf'), 
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 
@@ -112,7 +113,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 			if(isTRUE(saveRaw)){
 				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
 					INFO = '.', FORMAT = '.', Sample = '.')
-				write.table(varsOut, file = paste0(panelName, '_raw.txt'), sep = '\t', 
+				utils::write.table(varsOut, file = paste0(panelName, '_raw.txt'), sep = '\t', 
 					quote = FALSE, row.names = FALSE)
 			}
 			if(nrow(vars) != 0){
@@ -136,9 +137,9 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 					vcf_body <- data.frame(CHR = character(), POS = character(),
 						REF = character(), ALT = character())
 				}
-			write.table(vcf_header_genotype, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), 
+			utils::write.table(vcf_header_genotype, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
-			write.table(vcf_body, file = paste0(panelName, '_intervar.vcf'), append = TRUE, sep = '\t', quote = FALSE, 
+			utils::write.table(vcf_body, file = paste0(panelName, '_intervar.vcf'), append = TRUE, sep = '\t', quote = FALSE, 
 				col.names = FALSE, row.names = FALSE, na = '')
 		}
 	)
