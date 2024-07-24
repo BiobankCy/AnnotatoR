@@ -6,7 +6,7 @@
 \usage{
 collectVars(
   gns,
-  databases = c("gnomad", "clinvar", "lovd3", "all"),
+  databases = c("gnomad_man", "gnomad_auto", "clinvar", "lovd3", "all"),
   path,
   type = c("exomes", "genomes", "both")
 )

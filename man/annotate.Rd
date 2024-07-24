@@ -7,7 +7,7 @@
 annotate(
   gns,
   annotators = c("revel", "alphamissense", "clinvar_sig", "intervar", "all"),
-  databases = c("gnomad", "clinvar", "lovd3", "all"),
+  databases = c("gnomad_man", "gnomad_auto", "clinvar", "lovd3", "all"),
   panelName = "./results/panel",
   path = "./dbs",
   type = c("exomes", "genomes", "both"),
@@ -18,6 +18,8 @@ annotate(
 \item{gns}{Gene names character vector.}
 
 \item{annotators}{Annotators to create files for.}
+
+\item{databases}{Databases to fetch annotation from.}
 
 \item{panelName}{Path and prefix for output file.}
 
