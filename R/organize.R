@@ -14,16 +14,8 @@ constructAM <- function(gns, path){
 	message('Downloading AlphaMissense')
 	download_am(path)
 
-	edb <- EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86
-	granges <- ensembldb::genes(edb)
-	tranges <- ensembldb::transcripts(edb)
-	gns_id <- unique(as.data.frame(granges[GenomicRanges::elementMetadata(granges)$symbol %in% gns])[,'gene_id'])
-	gns_id <- gns_id[grep('ENSG', gns_id)]
-	map <- as.data.frame(tranges[GenomicRanges::elementMetadata(tranges)$gene_id %in% gns_id])
-	map$seqnames <- as.character(map$seqnames)
-	map <- map[which(map$seqnames %in% c(as.character(1:22), 'MT', 'X', 'Y')), ]
-
 	message('Subsetting AlphaMissense')
+	map <- map_fetch('EnsDb.Hsapiens.v86', gns, trans = TRUE)
 	system(paste0("gzip -cdk ", file.path(path, "AlphaMissense_hg38.tsv.gz"),
 		" | LC_ALL=C grep -i -E '", paste0(map$tx_id, collapse = '|'), 
 		"' > ", file.path(path, "alphaMissense_sel.txt")))
@@ -58,13 +50,7 @@ constructREVEL <- function(gns, path){
 	suppressWarnings(dir.create(path, recursive = TRUE))
 
 	# Gene coordinates (hg19 for revel 1.3 file names)
-	edb <- EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86
-	granges <- ensembldb::genes(edb)
-	map <- as.data.frame(
-		granges[GenomicRanges::elementMetadata(granges)$symbol %in% gns])
-	map <- map[grep('ENSG', map$gene_id), ]
-	map$seqnames <- as.character(map$seqnames)
-	map <- map[which(map$seqnames %in% c(as.character(1:22), 'MT', 'X', 'Y')), ]
+	map <- map_fetch('EnsDb.Hsapiens.v86', gns, trans = FALSE)
 	map <- split(map, f = map$seqnames)
 
 	# Download revel data files for respective chromosomes
@@ -174,24 +160,22 @@ constructClinVar <- function(gns, path){
 #' @param type Type of gnomAD data to download.
 #' @return vcf data.frame
 #' @export
-collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'), 
+collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar', 'lovd3', 'all'), 
 	path, type = c('exomes', 'genomes', 'both')){
 
 	# Get gene data
 	message('Preparing data')
-	edb <- EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86
-	granges <- ensembldb::genes(edb)
-	map <- as.data.frame(granges[GenomicRanges::elementMetadata(granges)$symbol %in% gns])
-	map <- map[grep('ENSG', map$gene_id), ]
-	map$seqnames <- as.character(map$seqnames)
-	map <- map[which(map$seqnames %in% c(as.character(1:22), 'MT', 'X', 'Y')), ]
+	map <- map_fetch('EnsDb.Hsapiens.v86', gns, trans = FALSE)
 	map <- split(map, f = map$seqnames)
 
 	databases <- match.arg(databases)
 	type <- match.arg(type)
 	switch(databases, 
-		gnomad = {
-			out <- gnomad_fetch(map, type, path)
+		gnomad_man = {
+			out <- gnomad_fetch_manual(map, path)
+		},
+		gnomad_auto = {
+			out <- gnomad_fetch_auto(map, type, path)
 		},
 		clinvar = {
 			out <- clinvar_fetch(gns, path)
@@ -200,13 +184,56 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 			out <- lovd3_fetch(gns, path)
 		},
 		all = {
-			a <- gnomad_fetch(map, type, path)
+			pathTmp <- file.path(path, 'gnomad/manual')
+			if(!dir.exists(pathTmp)){
+				message('gnomAD files are missing. Proceed to download')
+				a <- gnomad_fetch_auto(map, type, path)
+			} else if (dir.exists(pathTmp)) {
+				gns_tmp <- do.call('rbind', map)$gene_id
+				files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
+					full.names = TRUE)
+				if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
+					a <- gnomad_fetch_manual(map, path)
+				} else {
+					message('gnomAD files are missing. Proceed to download')
+					a <- gnomad_fetch_auto(map, type, path)
+				}
+			}
 			b <- clinvar_fetch(gns, path)
 			c <- lovd3_fetch(gns, path)
 			out <- unique(rbind(a, b, c))
 		}
 	)
 	return(out)
+}
+
+#' Fetch manually downloaded gnomAD variants.
+#'
+#' Collect known variants for specific genes downloaded manually from gnomAD
+#' 
+#' @param map Gene data as in map. 
+#' @param path Where data were downloaded
+#' @return vcf data.frame
+gnomad_fetch_manual <- function(map, path){
+	pathTmp <- file.path(path, 'gnomad/manual')
+	if(!dir.exists(pathTmp)){
+		stop('gnomAD files are missing')
+		} else {
+		message('Fetching gnomad variants')
+		gns_tmp <- do.call('rbind', map)$gene_id
+		files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
+			full.names = TRUE)
+		if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
+			gnomad_vcf <- do.call('rbind', lapply(as.list(files), function(x){
+					tmp <- read.delim(x, sep = ',')[,c('Chromosome', 'Position', 'Reference', 'Alternate')]
+					colnames(tmp) <- c('CHR', 'POS', 'REF', 'ALT')
+					tmp$CHR <- paste0('chr', tmp$CHR)
+					return(tmp)
+			}))
+		} else {
+			stop('gnomAD files are missing')
+		}
+	}
 }
 
 #' Fetch gnomAD variants.
@@ -217,7 +244,7 @@ collectVars <- function(gns, databases = c('gnomad', 'clinvar', 'lovd3', 'all'),
 #' @param type Type of gnomAD data to download.
 #' @param path Where data were downloaded
 #' @return vcf data.frame
-gnomad_fetch <- function(map, type = c('exomes', 'genomes', 'both'), path){
+gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path){
 	pathTmp <- file.path(path, 'gnomad')
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	type <- match.arg(type)

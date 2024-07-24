@@ -11,7 +11,7 @@
 #' @return IonReporter annotation files.
 #' @export
 annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig', 'intervar', 'all'),
-	databases = c('gnomad', 'clinvar', 'lovd3', 'all'), panelName = './results/panel', 
+	databases = c('gnomad_man', 'gnomad_auto', 'clinvar', 'lovd3', 'all'), panelName = './results/panel',
 	path = './dbs', type = c('exomes', 'genomes', 'both'), saveRaw = FALSE){
 
 	suppressWarnings(dir.create('./results'))
