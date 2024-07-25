@@ -21,6 +21,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 	type <- match.arg(type)
 	switch(annotators,
 		revel = {
+			message('\n=========================\nREVEL annotation\n=========================')
 			vcf_body <- constructREVEL(gns, path)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -30,6 +31,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				na = '')
 		},
 		alphamissense = {
+			message('\n=========================\nAlphaMissense annotation\n=========================')
 			vcf_body <- constructAM(gns, path)
 			utils::write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -39,6 +41,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				na = '')
 		},
 		clinvar_sig = {
+			message('\n========================\nClinVar annotation\n========================')
 			vcf_body <- constructClinVar(gns, path)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_clinvar_sig.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -48,7 +51,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				na = '')
 		},
 		intervar = {
-			message('Collecting variants')
+			message('\n========================\nInterVar annotation\n========================')
 			vars <- collectVars(gns, databases, path, type)
 			if(isTRUE(saveRaw)){
 				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
@@ -57,7 +60,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 					quote = FALSE, row.names = FALSE)
 			}
 			if(nrow(vars) != 0){
-				message('Pathogenicity prediction')
+				message('\n========================\nPathogenicity prediction\n========================')
 				progressr::with_progress(vars <- annotateInterVar(vars))
 				vars[is.na(vars)] <- NULL
 				message(length(vars), ' variants were annotated.')
@@ -83,9 +86,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				col.names = FALSE, row.names = FALSE, na = '')
 		},
 		all = {
-			# ===================================
-			# REVEL
-			# ===================================
+			message('\n=========================\nREVEL annotation\n=========================')
 			vcf_body <- constructREVEL(gns, path)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -94,9 +95,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 
-			# ===================================
-			# AlphaMissense
-			# ===================================
+			message('\n=========================\nAlphaMissense annotation\n=========================')
 			vcf_body <- constructAM(gns, path)
 			utils::write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -105,10 +104,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 
-			# ===================================
-			# InterVar
-			# ===================================
-			message('Collecting variants')
+			message('\n========================\nInterVar annotation\n========================')
 			vars <- collectVars(gns, databases, path, type)
 			if(isTRUE(saveRaw)){
 				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
@@ -117,7 +113,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 					quote = FALSE, row.names = FALSE)
 			}
 			if(nrow(vars) != 0){
-				message('Pathogenicity prediction')
+				message('\n========================\nPathogenicity prediction\n========================')
 				progressr::with_progress(vars <- annotateInterVar(vars))
 				vars[is.na(vars)] <- NULL
 				message(length(vars), ' variants were annotated.')

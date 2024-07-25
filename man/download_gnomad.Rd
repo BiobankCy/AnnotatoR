@@ -2,7 +2,8 @@
 % Please edit documentation in R/download.R
 \name{download_gnomad}
 \alias{download_gnomad}
-\title{Download gnomad chromosome files}
+\title{Global functions
+Download gnomad chromosome files}
 \usage{
 download_gnomad(chr, type = c("exomes", "genomes", "both"), path)
 }

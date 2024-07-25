@@ -54,9 +54,9 @@ constructREVEL <- function(gns, path){
 	map <- split(map, f = map$seqnames)
 
 	# Download revel data files for respective chromosomes
-	message('Fetching and Subsetting REVEL files.')
+	message('Fetching and Subsetting REVEL files')
 	revel_data <- list()
-	for(i in names(map)){
+	for(i in gsub('chr', '', names(map))){
 		if(nchar(i) == 1 & i %!in% c('X', 'Y')){
 			ii <- paste0('0', i)
 		} else if(nchar(i) == 1 & i %in% c('X', 'Y')){
@@ -82,7 +82,7 @@ constructREVEL <- function(gns, path){
 					segs$start < map[[i]][k, 'start'] & 
 					segs$end > map[[i]][k, 'end'])]
 			)
-			revel_vcf <- data.frame(CHR = paste0('chr', revel$chr),
+			revel_vcf <- data.frame(CHR = revel$chr,
 				POS = revel$grch38_pos, ID = round(revel$REVEL, 2), 
 				REF = revel$ref, ALT = revel$alt, QUAL = '.',
 				FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
@@ -112,10 +112,9 @@ constructREVEL <- function(gns, path){
 constructClinVar <- function(gns, path){
 	path <- file.path(path, 'clinvar')
 	suppressWarnings(dir.create(path, recursive = TRUE))
-
-	message('Fetching clinvar variants')
+	message('Fetching ClinVar variants')
 	download_clinvar(path)
-	message('Subsetting clinvar variants')
+	message('Subsetting ClinVar variants')
 	file.gz <- file.path(path, 'clinvar.vcf.gz')
 	file.gz.tbi <- paste(file.gz, ".tbi", sep="")
 	if(!(file.exists(file.gz.tbi)))
@@ -142,7 +141,7 @@ constructClinVar <- function(gns, path){
 		revstatus_map[which(revstatus_map$stars != 'none'), ], 
 		by = 'REVSTAT'
 	)
-	clinvar_vcf <- data.frame(CHR = paste0('chr', clinvar_vcf$CHR),
+	clinvar_vcf <- data.frame(CHR = clinvar_vcf$CHR,
 		POS = clinvar_vcf$POS, ID = paste0(clinvar_vcf$SIG, '(', clinvar_vcf$stars, ')'), 
 		REF = clinvar_vcf$REF, ALT = clinvar_vcf$ALT, QUAL = '.',
 		FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
@@ -227,7 +226,6 @@ gnomad_fetch_manual <- function(map, path){
 			gnomad_vcf <- do.call('rbind', lapply(as.list(files), function(x){
 					tmp <- utils::read.delim(x, sep = ',')[,c('Chromosome', 'Position', 'Reference', 'Alternate')]
 					colnames(tmp) <- c('CHR', 'POS', 'REF', 'ALT')
-					tmp$CHR <- paste0('chr', tmp$CHR)
 					return(tmp)
 			}))
 		} else {
@@ -252,14 +250,14 @@ gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path){
 	gnomad_vcf <- do.call('rbind', lapply(map, function(x){
 		switch(type,
 			exomes = {
-				download_gnomad(paste0('chr', unique(x$seqnames)), type, pathTmp)
+				download_gnomad(paste0(unique(x$seqnames)), type, pathTmp)
 				out <- list()
 				for(k in type) {
 					message('Subsetting gnomAD ', k)
-					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', 
+					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.', 
 						unique(x$seqnames), '.vcf.bgz'))
 					file.gz.tbi <- paste(file.gz, ".tbi", sep="")
-					gr <- GenomicRanges::GRanges(paste0('chr', x$seqnames), IRanges::IRanges(x$start, x$end))
+					gr <- GenomicRanges::GRanges(x$seqnames, IRanges::IRanges(x$start, x$end))
 					params <- VariantAnnotation::ScanVcfParam(which = gr)
 					vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
 					rg <- SummarizedExperiment::rowRanges(vcf)
@@ -273,14 +271,14 @@ gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path){
 				return(do.call('rbind', out))
 			},
 			genomes = {
-				download_gnomad(paste0('chr', unique(x$seqnames)), type, pathTmp)
+				download_gnomad(unique(x$seqnames), type, pathTmp)
 				out <- list()
 				for(k in type) {
 					message('Subsetting gnomAD ', k)
-					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', 
+					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.', 
 						unique(x$seqnames), '.vcf.bgz'))
 					file.gz.tbi <- paste(file.gz, ".tbi", sep="")
-					gr <- GenomicRanges::GRanges(paste0('chr', x$seqnames), IRanges::IRanges(x$start, x$end))
+					gr <- GenomicRanges::GRanges(x$seqnames, IRanges::IRanges(x$start, x$end))
 					params <- VariantAnnotation::ScanVcfParam(which = gr)
 					vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
 					rg <- SummarizedExperiment::rowRanges(vcf)
@@ -294,14 +292,14 @@ gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path){
 				return(do.call('rbind', out))
 			},
 			both = {
-				download_gnomad(paste0('chr', unique(x$seqnames)), type, pathTmp)
+				download_gnomad(unique(x$seqnames), type, pathTmp)
 				out <- list()
 				for(k in c('exomes', 'genomes')) {
 					message('Subsetting gnomAD ', k)
-					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.chr', 
+					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.', 
 						unique(x$seqnames), '.vcf.bgz'))
 					file.gz.tbi <- paste(file.gz, ".tbi", sep="")
-					gr <- GenomicRanges::GRanges(paste0('chr', x$seqnames), IRanges::IRanges(x$start, x$end))
+					gr <- GenomicRanges::GRanges(x$seqnames, IRanges::IRanges(x$start, x$end))
 					params <- VariantAnnotation::ScanVcfParam(which = gr)
 					vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
 					rg <- SummarizedExperiment::rowRanges(vcf)
@@ -318,10 +316,7 @@ gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path){
 		)
 	}))
 	rownames(gnomad_vcf) <- NULL
-	unlink(c(
-		file.path(pathTmp, 'tmp_gen.vcf'), 
-		file.path(pathTmp, 'tmp_ex.vcf')
-	))
+	unlink(c(file.path(pathTmp, 'tmp_gen.vcf'), file.path(pathTmp, 'tmp_ex.vcf')))
 	return(gnomad_vcf)
 }
 
@@ -358,9 +353,7 @@ clinvar_fetch <- function(gns, path){
 	# clinvar_vcf <- read.table(file.path(pathTmp, 'clinvar_tmp.vcf'))
 	# colnames(clinvar_vcf) <- c('CHR', 'POS', 'REF', 'ALT', 'GENEINFO')
 	clinvar_vcf <- clinvar_vcf[grep(paste(gns, collapse = '|'), clinvar_vcf$GENEINFO), 1:4]
-	unlink(c(
-		file.path(pathTmp, 'clinvar_tmp.vcf') 
-	))
+	unlink(file.path(pathTmp, 'clinvar_tmp.vcf'))
 	return(clinvar_vcf)
 }
 
@@ -413,15 +406,204 @@ lovd3_fetch <- function(gns, path){
 		}
 	}
 	lovd3_vcf[is.na(lovd3_vcf)] <- NULL
+
 	if(length(lovd3_vcf)){
 		lovd3_vcf <- do.call('rbind', lovd3_vcf)
 		rownames(lovd3_vcf) <- NULL
+
+		# Remove entries w/o genomic location
+		lovd3_vcf <- lovd3_vcf[which(lovd3_vcf$VariantOnGenome.DNA.hg38 %!in% c('', '- ')),]
+
+		# Maintain germline mutations
+		lovd3_vcf <- lovd3_vcf[grep('Germline', lovd3_vcf$VariantOnGenome.Genetic_origin),]
+		 
+		# Remove large duplications and deletions
+		lovd3_vcf <- lovd3_vcf[grep('\\)dup|\\)del', lovd3_vcf$VariantOnGenome.DNA.hg38, invert = TRUE),]
+
+		# Remove cases with []
+		lovd3_vcf <- lovd3_vcf[grep('\\[',lovd3_vcf$VariantOnGenome.DNA.hg38, invert = TRUE),]
+
+		# Genomic positions
+		lovd3_vcf$end <- lovd3_vcf$start <- gsub('g\\.|[a-zA-Z]*>.*$|del.*|dup.*|ins.*|inv.*', '', 
+			lovd3_vcf$VariantOnGenome.DNA.hg38)
+		lovd3_vcf$start <- suppressWarnings(as.numeric(gsub('_.*$', '', lovd3_vcf$start)))
+		lovd3_vcf$end <- suppressWarnings(as.numeric(gsub('^.*_', '', lovd3_vcf$end)))
+		lovd3_vcf <- na.omit(lovd3_vcf)
+
+		# Correct some lovd3_vcf typos
+		lovd3_vcf$start <- as.numeric(gsub('^0\\.', '', lovd3_vcf$start))
+		lovd3_vcf$end <- as.numeric(gsub('^0\\.', '', lovd3_vcf$end))
+
+		# Isolate Ref and Alt bases
+		# old2 <- lovd3_vcf
+		refAlt <- list()
+		for(i in 1:nrow(lovd3_vcf)){
+			message('Processing ', i, ' of ', nrow(lovd3_vcf))
+			tmp <- lovd3_vcf[i,]
+			# Correct potential typo
+			if(length(grep('^\\.', tmp$VariantOnGenome.DNA.hg38))){
+				tmp$VariantOnGenome.DNA.hg38 <- lovd3_vcf[i, 'VariantOnGenome.DNA.hg38'] <- 
+					gsub('\\.', 'g\\.', tmp$VariantOnGenome.DNA.hg38)
+			}
+
+			if(length(grep('>', tmp$VariantOnGenome.DNA.hg38))){ # Retrieve SNPs
+
+				out <- unlist(strsplit(
+					gsub('g\\.[0-9]*', '', tmp$VariantOnGenome.DNA.hg38), split = '>'))
+				refAlt[[i]] <- data.frame(REF = out[1], ALT = out[2])
+
+			} else if(length(grep('del$', tmp$VariantOnGenome.DNA.hg38))){ # Retrieve any variant recorded as e.g. `delGGGTGAA`
+
+				# Change coordinates to the previous base
+				lovd3_vcf$start[i] <- lovd3_vcf$start[i] - 1
+				gseq <- as.character(
+					Biostrings::getSeq(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38, tmp$chromosome, 
+						tmp$start - 1, tmp$end)
+				)
+				refAlt[[i]] <- data.frame(REF = gseq, ALT = unlist(strsplit(gseq, split = ''))[1])
+
+			} else if(length(grep('ins', tmp$VariantOnGenome.DNA.hg38))){ # Gather any del, ins, delins
+
+				# Is the variant recorded as e.g. `delGAinsT`?
+				out <- stringr::str_extract(tmp$VariantOnGenome.Published_as, 'del[a-zA-Z]+ins[a-zA-Z]+')
+
+				# If the variant is indeed recorded as e.g. `delGAinsT`
+				if(!is.na(out)){
+					aa <- unlist(strsplit(out, 'ins'))
+					aa[1] <- gsub('del', '', aa[1])
+					y <- unlist(strsplit(paste(aa, collapse = ''), ''))
+					ifelse(any(y %!in% c('A', 'T', 'C', 'G')),
+						out <- data.frame(REF = NA, ALT = NA),
+						out <- data.frame(REF = aa[1], ALT = aa[2])
+					)
+				}
+
+				# Is the variant recorded as e.g. `insT`?
+				if(length(out) == 1 && is.na(out)){
+					# Change coordinates to the previous base
+					lovd3_vcf$start[i] <- lovd3_vcf$start[i] - 1
+
+					# Isolate insertion
+					out <- stringr::str_extract(tmp$VariantOnGenome.Published_as, 'ins[a-zA-Z]+')
+					out <- gsub('ins', '', out)
+
+					# Previous base
+					ref <- Biostrings::getSeq(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38, tmp$chromosome, 
+						tmp$start - 1, tmp$start - 1)
+
+					y <- unlist(strsplit(out, ''))
+					ifelse(any(y %!in% c('A', 'T', 'C', 'G')),
+						out <- data.frame(REF = NA, ALT = NA),
+						out <- data.frame(REF = ref, ALT = paste0(ref, out))
+					)
+
+				}
+
+				# Is the variant recorded as e.g. `delinsTGC` in `VariantOnGenome.DNA.hg38`?
+				if(length(out) == 1 && is.na(out)){
+					out <- stringr::str_extract(tmp$VariantOnGenome.DNA.hg38, 'delins[a-zA-Z]+')
+					out <- gsub('delins', '', out)
+					y <- unlist(strsplit(out, ''))
+
+					# Previous base
+					ref <- Biostrings::getSeq(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38, tmp$chromosome, 
+						tmp$start, tmp$end)
+
+					ifelse(any(y %!in% c('A', 'T', 'C', 'G')),
+						out <- data.frame(REF = NA, ALT = NA),
+						out <- data.frame(REF = ref, ALT = out)
+					)
+				}
+
+				# Is the variant recorded as e.g. `insTGC` in `VariantOnGenome.DNA.hg38`?
+				if(length(out) == 1 && is.na(out)){
+
+					# Change coordinates to the previous base
+					lovd3_vcf$start[i] <- lovd3_vcf$start[i] - 1
+
+					# Isolate insertion
+					out <- stringr::str_extract(tmp$VariantOnGenome.DNA.hg38, 'ins[a-zA-Z]+')
+					out <- gsub('ins', '', out)
+
+					# Previous base
+					ref <- Biostrings::getSeq(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38, tmp$chromosome, 
+						tmp$start - 1, tmp$start - 1)
+
+					y <- unlist(strsplit(out, ''))
+					ifelse(any(y %!in% c('A', 'T', 'C', 'G')),
+						out <- data.frame(REF = NA, ALT = NA),
+						out <- data.frame(REF = ref, ALT = paste0(ref, out))
+					)
+				}
+
+				# If all the above fail
+				if(length(out) == 1 && is.na(out)){
+					out <- data.frame(REF = NA, ALT = NA)
+				}
+
+				refAlt[[i]] <- out
+
+			} else if(length(grep('dup', tmp$VariantOnGenome.DNA.hg38))){ # Gather any dups
+
+				out <- stringr::str_extract(tmp$VariantOnGenome.Published_as, 'dup[a-zA-Z]+')
+
+				# If the variant is indeed recorded as e.g. `478_480dupGGA`
+				if(!is.na(out)){
+					aa <- gsub('dup', '', out)
+					y <- unlist(strsplit(paste(aa, collapse = ''), ''))
+					ifelse(any(y %!in% c('A', 'T', 'C', 'G')),
+						out <- data.frame(REF = NA, ALT = NA),
+						out <- data.frame(REF = aa, ALT = paste(rep(aa, 2), collapse = ''))
+					)
+				}
+
+				# Is the variant recorded as e.g. `1280_1281insA`?
+				if(length(out) == 1 && is.na(out)){
+					
+					# Change coordinates to the previous base
+					lovd3_vcf$start[i] <- lovd3_vcf$start[i] - 1
+
+					# Isolate insertion
+					out <- stringr::str_extract(tmp$VariantOnGenome.Published_as, 'ins[a-zA-Z]+')
+					out <- gsub('ins', '', out)
+
+					# Previous base
+					ref <- Biostrings::getSeq(BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38, tmp$chromosome, 
+						tmp$start - 1, tmp$start - 1)
+
+					y <- unlist(strsplit(out, ''))
+					ifelse(any(y %!in% c('A', 'T', 'C', 'G')),
+						out <- data.frame(REF = NA, ALT = NA),
+						out <- data.frame(REF = ref, ALT = paste0(ref, out))
+					)
+
+				}
+
+				# If all the above fail
+				if(length(out) == 1 && is.na(out)){
+					out <- data.frame(REF = NA, ALT = NA)
+				}
+
+				refAlt[[i]] <- out
+
+			} else { # A handfull of exceptions
+				refAlt[[i]] <- data.frame(REF = NA, ALT = NA)
+			}
+		}
+		lovd3_vcf <- cbind(lovd3_vcf, do.call('rbind', refAlt))
+
+		# Keep important columns
+		lovd3_vcf <- unique(lovd3_vcf[,c('chromosome', 'start', 'REF', 'ALT')])
+		rownames(lovd3_vcf) <- NULL
+		lovd3_vcf <- na.omit(lovd3_vcf)
+		lovd3_vcf <- lovd3_vcf[grep('Y|W|K|D', lovd3_vcf$ALT, invert = TRUE),]
+		lovd3_vcf <- lovd3_vcf[grep('Y|W|K|D', lovd3_vcf$ALT, invert = TRUE),]
+		colnames(lovd3_vcf)[1:2] <- c('CHR', 'POS')
+
 		} else {
 			lovd3_vcf <- data.frame(CHR = character(), POS = character(),
 				REF = character(), ALT = character())
 		}
-	unlink(c(
-		file.path(pathTmp, '*')
-	))
+	unlink(file.path(pathTmp, '*'))
 	return(lovd3_vcf)
 }
