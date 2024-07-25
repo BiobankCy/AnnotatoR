@@ -1,6 +1,7 @@
 #' Global functions
-pkg_env <- new.env(parent = emptyenv())
-assign('format.object_size', getAnywhere(format.object_size), pkg_env)
+# pkg_env <- new.env(parent = emptyenv())
+# assign('format.object_size', getAnywhere(format.object_size), pkg_env)
+# format_size <- utils::getAnywhere(format.object_size)
 
 #' Download gnomad chromosome files
 #'
@@ -26,7 +27,7 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 						chr, '.vcf.bgz')
 					system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | uniq > ", path, "/size.txt"))
 					message('You are about to download ~', 
-						pkg_env$format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
+						utils:::format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
 						' of data.') 
 					if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
 						system(paste0('wget -q --show-progress -P ', path, lnk))
@@ -48,7 +49,7 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 						chr, '.vcf.bgz')	
 					system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | uniq > ", path, "/size.txt"))
 					message('You are about to download ~', 
-						pkg_env$format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
+						utils:::format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
 						' of data.') 
 					if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
 						system(paste0('wget -q --show-progress -P ', path, lnk))
@@ -71,7 +72,7 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 						chr, '.vcf.bgz')
 					system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | uniq > ", path, "/size.txt"))
 					message('You are about to download ~', 
-						pkg_env$format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
+						utils:::format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
 						' of data.')
 					if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
 						system(paste0('wget -q --show-progress -P ', path, lnk))
@@ -90,7 +91,7 @@ download_gnomad <- function(chr, type = c('exomes', 'genomes', 'both'),
 						chr, '.vcf.bgz')	
 					system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | uniq > ", path, "/size.txt"))
 					message('You are about to download ~', 
-						pkg_env$format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
+						utils:::format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
 						' of data.')
 					if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
 						system(paste0('wget -q --show-progress -P ', path, lnk))
@@ -122,7 +123,7 @@ download_clinvar <- function(path){
 		lnkIndex <- paste0(lnk, '.tbi')
 		system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | head -1 > ", path, "/size.txt"))
 		message('You are about to download ~', 
-			pkg_env$format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
+			utils:::format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
 			' of data.') 
 		if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
 			system(paste0('wget -q --show-progress -P ', path, lnk))
@@ -151,7 +152,7 @@ download_am <- function(path){
 		lnk <- ' https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz'
 		system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | head -1 > ", path, "/size.txt"))
 		message('You are about to download ~', 
-			pkg_env$format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
+			utils:::format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
 			' of data.') 
 		if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
 			system(paste0('wget -q --show-progress -P ', path, lnk))
@@ -181,7 +182,7 @@ download_revel <- function(chr, path) {
 		lnk <- paste0(' https://zenodo.org/records/7072866/files/', name, '?download=1')
 		system(paste0("curl -sI", lnk, " | grep -i Content-Length | cut -d ' ' -f 2 | head -1 > ", path, "/size.txt"))
 		message('You are about to download ~', 
-			pkg_env$format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
+			utils:::format.object_size(as.numeric(readLines(file.path(path, 'size.txt'))), 'auto'), 
 			' of data.') 
 		if(isTRUE(utils::askYesNo('Do you want to proceed?'))){
 			system(paste0('wget -q --show-progress -O ', file.path(path, name), lnk))
