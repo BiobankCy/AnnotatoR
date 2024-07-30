@@ -15,10 +15,12 @@ process_json <- function(j) {tryCatch({
 #' ACMG criteria as implemented by InterVar.
 #'
 #' @param vcf A variant table as the one created by `collectVars`
+#' @param liftover Were variants lifted over?
 #' @return Annotated variants
 #' @export
-annotateInterVar <- function(vcf){
+annotateInterVar <- function(vcf, liftover){
 	p <- progressr::progressor(steps = nrow(vcf))
+	build <- ifelse(liftover, 'hg19', 'hg38')
 	out <- list()
 	for(i in 1:nrow(vcf)){
 		p(message = sprintf("Adding %g", i))
@@ -27,7 +29,7 @@ annotateInterVar <- function(vcf){
 			'&pos=', vcf[i, 'POS'],
 			'&ref=', vcf[i, 'REF'],
 			'&alt=', vcf[i, 'ALT'],
-			'&build=hg38'
+			paste0('&build=', build)
 		)), 'text'))
 
 		if(tmp == ''){
@@ -69,3 +71,13 @@ map_fetch <- function(ensdb, gns, trans = FALSE){
 	return(map)
 }
 
+#' LiftOver hg38 to hg19
+#'
+#' @param vcf A vcf dataframe with CHR and POS columns
+#'
+#' @return Lifted over positions
+lift <- function(vcf, ...){
+	gr38 <- GenomicRanges::GRanges(paste(vcf$CHR, vcf$POS, sep = ':'))
+	ch <- rtracklayer::import.chain(system.file(package = 'liftOver', 'extdata', 'hg38ToHg19.over.chain'))
+	gr19 <- unlist(rtracklayer::liftOver(gr38, ch))
+}

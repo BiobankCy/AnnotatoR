@@ -6,9 +6,10 @@
 #'
 #' @param gns Gene names character vector.
 #' @param path Where data were downloaded
+#' @param liftover Should variants be lifted over?
 #' @return vcf data.frame
 #' @export
-constructAM <- function(gns, path){
+constructAM <- function(gns, path, liftover){
 	path <- file.path(path, 'alphamissense')
 	suppressWarnings(dir.create(path, recursive = TRUE))
 	message('Downloading AlphaMissense')
@@ -34,6 +35,7 @@ constructAM <- function(gns, path){
 		REF = am$REF, ALT = am$ALT, QUAL = '.', FILTER = 'PASS', INFO = '.',
 		FORMAT = '.', Sample = '.'
 	)
+	if(isTRUE(liftover)) am_vcf$POS <- as.data.frame(lift(am_vcf))$start
 	return(am_vcf)
 }
 
@@ -107,9 +109,10 @@ constructREVEL <- function(gns, path){
 #'
 #' @param gns Gene names character vector.
 #' @param path Where data were downloaded
+#' @param liftover Should variants be lifted over?
 #' @return vcf data.frame
 #' @export
-constructClinVar <- function(gns, path){
+constructClinVar <- function(gns, path, liftover){
 	path <- file.path(path, 'clinvar')
 	suppressWarnings(dir.create(path, recursive = TRUE))
 	message('Fetching ClinVar variants')
@@ -125,7 +128,7 @@ constructClinVar <- function(gns, path){
 	rg <- SummarizedExperiment::rowRanges(vcf)
 	inf <- VariantAnnotation::info(vcf)
 	clinvar_vcf <- data.frame(
-		CHR = as.character(GenomicRanges::seqnames(rg)), 
+		CHR = paste0('chr', as.character(GenomicRanges::seqnames(rg))), 
 		POS = as.data.frame(rg@ranges)$start,
 		REF = as.character(S4Vectors::DataFrame(rg)$REF), 
 		ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT)),
@@ -145,6 +148,7 @@ constructClinVar <- function(gns, path){
 		POS = clinvar_vcf$POS, ID = paste0(clinvar_vcf$SIG, '(', clinvar_vcf$stars, ')'), 
 		REF = clinvar_vcf$REF, ALT = clinvar_vcf$ALT, QUAL = '.',
 		FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
+	if(isTRUE(liftover)) clinvar_vcf$POS <- as.data.frame(lift(clinvar_vcf))$start
 	return(clinvar_vcf)
 }
 
@@ -157,10 +161,11 @@ constructClinVar <- function(gns, path){
 #' @param databases Databases to retrieve variants from. 
 #' @param path Where data were downloaded
 #' @param type Type of gnomAD data to download.
+#' @param liftover Should variants be lifted over?
 #' @return vcf data.frame
 #' @export
 collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar', 'lovd3', 'all'), 
-	path, type = c('exomes', 'genomes', 'both')){
+	path, type = c('exomes', 'genomes', 'both'), liftover){
 
 	# Get gene data
 	message('Preparing data')
@@ -171,36 +176,36 @@ collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar
 	type <- match.arg(type)
 	switch(databases, 
 		gnomad_man = {
-			out <- gnomad_fetch_manual(map, path)
+			out <- gnomad_fetch_manual(map, path, liftover)
 		},
 		gnomad_auto = {
-			out <- gnomad_fetch_auto(map, type, path)
+			out <- gnomad_fetch_auto(map, type, path, liftover)
 		},
 		clinvar = {
-			out <- clinvar_fetch(gns, path)
+			progressr::with_progress(out <- clinvar_fetch(gns, path, liftover))
 		},
 		lovd3 = {
-			out <- lovd3_fetch(gns, path)
+			progressr::with_progress(out <- lovd3_fetch(gns, path, liftover))
 		},
 		all = {
 			pathTmp <- file.path(path, 'gnomad/manual')
 			if(!dir.exists(pathTmp)){
 				message('gnomAD files are missing. Proceed to download')
-				a <- gnomad_fetch_auto(map, type, path)
+				a <- gnomad_fetch_auto(map, type, path, liftover)
 			} else if (dir.exists(pathTmp)) {
 				gns_tmp <- do.call('rbind', map)$gene_id
 				files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
 					full.names = TRUE)
 				if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
-					a <- gnomad_fetch_manual(map, path)
+					a <- gnomad_fetch_manual(map, path, liftover)
 				} else {
 					message('gnomAD files are missing. Proceed to download')
-					a <- gnomad_fetch_auto(map, type, path)
+					a <- gnomad_fetch_auto(map, type, path, liftover)
 				}
 			}
-			b <- clinvar_fetch(gns, path)
-			c <- lovd3_fetch(gns, path)
-			out <- unique(rbind(a, b, c))
+			b <- clinvar_fetch(gns, path, liftover)
+			progressr::with_progress(c <- lovd3_fetch(gns, path, liftover))
+			progressr::with_progress(out <- unique(rbind(a, b, c)))
 		}
 	)
 	return(out)
@@ -212,15 +217,16 @@ collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar
 #' 
 #' @param map Gene data as in map. 
 #' @param path Where data were downloaded
+#' @param liftover Should variants be lifted over?
 #' @return vcf data.frame
-gnomad_fetch_manual <- function(map, path){
+gnomad_fetch_manual <- function(map, path, liftover){
 	pathTmp <- file.path(path, 'gnomad/manual')
 	if(!dir.exists(pathTmp)){
 		stop('gnomAD files are missing')
 		} else {
 		message('Fetching gnomad variants')
 		gns_tmp <- do.call('rbind', map)$gene_id
-		files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
+		files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '.*', collapse = '|'), 
 			full.names = TRUE)
 		if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
 			gnomad_vcf <- do.call('rbind', lapply(as.list(files), function(x){
@@ -228,6 +234,9 @@ gnomad_fetch_manual <- function(map, path){
 					colnames(tmp) <- c('CHR', 'POS', 'REF', 'ALT')
 					return(tmp)
 			}))
+			gnomad_vcf$CHR <- paste0('chr', gnomad_vcf$CHR)
+			if(isTRUE(liftover)) gnomad_vcf$POS <- as.data.frame(lift(gnomad_vcf))$start
+			return(gnomad_vcf)
 		} else {
 			stop('gnomAD files are missing')
 		}
@@ -241,8 +250,9 @@ gnomad_fetch_manual <- function(map, path){
 #' @param map Gene data as in map. 
 #' @param type Type of gnomAD data to download.
 #' @param path Where data were downloaded
+#' @param liftover Should variants be lifted over?
 #' @return vcf data.frame
-gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path){
+gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path, liftover){
 	pathTmp <- file.path(path, 'gnomad')
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	type <- match.arg(type)
@@ -250,46 +260,42 @@ gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path){
 	gnomad_vcf <- do.call('rbind', lapply(map, function(x){
 		switch(type,
 			exomes = {
-				download_gnomad(paste0(unique(x$seqnames)), type, pathTmp)
-				out <- list()
-				for(k in type) {
-					message('Subsetting gnomAD ', k)
-					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.', 
-						unique(x$seqnames), '.vcf.bgz'))
-					file.gz.tbi <- paste(file.gz, ".tbi", sep="")
-					gr <- GenomicRanges::GRanges(x$seqnames, IRanges::IRanges(x$start, x$end))
-					params <- VariantAnnotation::ScanVcfParam(which = gr)
-					vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
-					rg <- SummarizedExperiment::rowRanges(vcf)
-					out[[k]] <- data.frame(
-						CHR = as.character(GenomicRanges::seqnames(rg)), 
-						POS = as.data.frame(rg@ranges)$start, 
-						REF = as.character(S4Vectors::DataFrame(rg)$REF), 
-						ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
-					)
-				}
-				return(do.call('rbind', out))
+				download_gnomad(paste0(unique(x$seqnames)), 'exomes', pathTmp)
+				message('Subsetting gnomAD exomes')
+				file.gz <- file.path(pathTmp, paste0('gnomad.exomes.v4.0.sites.', 
+					unique(x$seqnames), '.vcf.bgz'))
+				file.gz.tbi <- paste(file.gz, ".tbi", sep="")
+				gr <- GenomicRanges::GRanges(x$seqnames, IRanges::IRanges(x$start, x$end))
+				params <- VariantAnnotation::ScanVcfParam(which = gr)
+				vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
+				rg <- SummarizedExperiment::rowRanges(vcf)
+				out <- data.frame(
+					CHR = as.character(GenomicRanges::seqnames(rg)), 
+					POS = as.data.frame(rg@ranges)$start, 
+					REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+					ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+				)
+				if(isTRUE(liftover)) out$POS <- as.data.frame(lift(out))$start
+				return(out)
 			},
 			genomes = {
-				download_gnomad(unique(x$seqnames), type, pathTmp)
-				out <- list()
-				for(k in type) {
-					message('Subsetting gnomAD ', k)
-					file.gz <- file.path(pathTmp, paste0('gnomad.', k, '.v4.0.sites.', 
-						unique(x$seqnames), '.vcf.bgz'))
-					file.gz.tbi <- paste(file.gz, ".tbi", sep="")
-					gr <- GenomicRanges::GRanges(x$seqnames, IRanges::IRanges(x$start, x$end))
-					params <- VariantAnnotation::ScanVcfParam(which = gr)
-					vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
-					rg <- SummarizedExperiment::rowRanges(vcf)
-					out[[k]] <- data.frame(
-						CHR = as.character(GenomicRanges::seqnames(rg)), 
-						POS = as.data.frame(rg@ranges)$start, 
-						REF = as.character(S4Vectors::DataFrame(rg)$REF), 
-						ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
-					)
-				}
-				return(do.call('rbind', out))
+				download_gnomad(unique(x$seqnames), 'genomes', pathTmp)
+				message('Subsetting gnomAD genomes')
+				file.gz <- file.path(pathTmp, paste0('gnomad.genomes.v4.0.sites.', 
+					unique(x$seqnames), '.vcf.bgz'))
+				file.gz.tbi <- paste(file.gz, ".tbi", sep="")
+				gr <- GenomicRanges::GRanges(x$seqnames, IRanges::IRanges(x$start, x$end))
+				params <- VariantAnnotation::ScanVcfParam(which = gr)
+				vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
+				rg <- SummarizedExperiment::rowRanges(vcf)
+				out <- data.frame(
+					CHR = as.character(GenomicRanges::seqnames(rg)), 
+					POS = as.data.frame(rg@ranges)$start, 
+					REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+					ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+				)
+				if(isTRUE(liftover)) out$POS <- as.data.frame(lift(out))$start
+				return(out)
 			},
 			both = {
 				download_gnomad(unique(x$seqnames), type, pathTmp)
@@ -309,6 +315,7 @@ gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path){
 						REF = as.character(S4Vectors::DataFrame(rg)$REF), 
 						ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
 					)
+					if(isTRUE(liftover)) out[[k]]$POS <- as.data.frame(lift(out[[k]]))$start
 				}
 				return(do.call('rbind', out))
 			}
@@ -326,8 +333,9 @@ gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path){
 #' 
 #' @param gns Gene names character vector.
 #' @param path Where data were downloaded
+#' @param liftover Should variants be lifted over?
 #' @return vcf data.frame
-clinvar_fetch <- function(gns, path){
+clinvar_fetch <- function(gns, path, liftover){
 	pathTmp <- file.path(path, 'clinvar')
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	message('Fetching clinvar variants')
@@ -342,7 +350,7 @@ clinvar_fetch <- function(gns, path){
 	rg <- SummarizedExperiment::rowRanges(vcf)
 	inf <- VariantAnnotation::info(vcf)
 	clinvar_vcf <- data.frame(
-		CHR = as.character(GenomicRanges::seqnames(rg)), 
+		CHR = paste0('chr', as.character(GenomicRanges::seqnames(rg))),
 		POS = as.data.frame(rg@ranges)$start, 
 		REF = as.character(S4Vectors::DataFrame(rg)$REF), 
 		ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT)),
@@ -353,6 +361,7 @@ clinvar_fetch <- function(gns, path){
 	# clinvar_vcf <- read.table(file.path(pathTmp, 'clinvar_tmp.vcf'))
 	# colnames(clinvar_vcf) <- c('CHR', 'POS', 'REF', 'ALT', 'GENEINFO')
 	clinvar_vcf <- clinvar_vcf[grep(paste(gns, collapse = '|'), clinvar_vcf$GENEINFO), 1:4]
+	if(isTRUE(liftover)) clinvar_vcf$POS <- as.data.frame(lift(clinvar_vcf))$start
 	unlink(file.path(pathTmp, 'clinvar_tmp.vcf'))
 	return(clinvar_vcf)
 }
@@ -363,8 +372,9 @@ clinvar_fetch <- function(gns, path){
 #' 
 #' @param gns Gene names character vector.
 #' @param path Where data were downloaded
+#' @param liftover Should variants be lifted over?
 #' @return vcf data.frame
-lovd3_fetch <- function(gns, path){
+lovd3_fetch <- function(gns, path, liftover){
 	pathTmp <- file.path(path, 'lovd3')
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	message('Retrieving LOVD3 variants')
@@ -379,7 +389,7 @@ lovd3_fetch <- function(gns, path){
 			message('No public variants for ', gene)
 			lovd3_vcf[[gene]] <- NA
 		} else {
-			message('Now processing ', gene)
+			# message('Now processing ', gene)
 			# Genomic data
 			start <- grep('\\#\\# Variants_On_Genome', tmp)
 			stop <- grep('\\#\\# Variants_On_Transcripts', tmp) -4
@@ -437,8 +447,11 @@ lovd3_fetch <- function(gns, path){
 		# Isolate Ref and Alt bases
 		# old2 <- lovd3_vcf
 		refAlt <- list()
+		message('Processing LOVD3 variants')
+		p <- progressr::progressor(steps = nrow(lovd3_vcf))
 		for(i in 1:nrow(lovd3_vcf)){
-			message('Processing ', i, ' of ', nrow(lovd3_vcf))
+			p(message = sprintf("Adding %g", i))
+			# message('Processing ', i, ' of ', nrow(lovd3_vcf))
 			tmp <- lovd3_vcf[i,]
 			# Correct potential typo
 			if(length(grep('^\\.', tmp$VariantOnGenome.DNA.hg38))){
@@ -604,6 +617,7 @@ lovd3_fetch <- function(gns, path){
 			lovd3_vcf <- data.frame(CHR = character(), POS = character(),
 				REF = character(), ALT = character())
 		}
+	if(isTRUE(liftover)) lovd3_vcf$POS <- as.data.frame(lift(lovd3_vcf))$start
 	unlink(file.path(pathTmp, '*'))
 	return(lovd3_vcf)
 }

@@ -8,12 +8,13 @@
 #' @param panelName Path and prefix for output file.  
 #' @param path Where database files will be downloaded.  
 #' @param type Type of gnomAD data to download. Applicable only for `intervar` and `all` annotators.
+#' @param liftover Should variants be lifted over?
 #' @param saveRaw Save all variants without any annotation. Applicable only for `intervar` and `all` annotators.
 #' @return IonReporter annotation files.
 #' @export
 annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig', 'intervar', 'all'),
 	databases = c('gnomad_man', 'gnomad_auto', 'clinvar', 'lovd3', 'all'), panelName = './results/panel',
-	path = './dbs', type = c('exomes', 'genomes', 'both'), saveRaw = FALSE){
+	path = './dbs', type = c('exomes', 'genomes', 'both'), liftover = FALSE, saveRaw = FALSE){
 
 	suppressWarnings(dir.create('./results'))
 	annotators <- match.arg(annotators)
@@ -32,7 +33,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 		},
 		alphamissense = {
 			message('\n=========================\nAlphaMissense annotation\n=========================')
-			vcf_body <- constructAM(gns, path)
+			vcf_body <- constructAM(gns, path, liftover)
 			utils::write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
@@ -42,7 +43,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 		},
 		clinvar_sig = {
 			message('\n========================\nClinVar annotation\n========================')
-			vcf_body <- constructClinVar(gns, path)
+			vcf_body <- constructClinVar(gns, path, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_clinvar_sig.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
@@ -52,7 +53,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 		},
 		intervar = {
 			message('\n========================\nInterVar annotation\n========================')
-			vars <- collectVars(gns, databases, path, type)
+			vars <- collectVars(gns, databases, path, type, liftover)
 			if(isTRUE(saveRaw)){
 				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
 					INFO = '.', FORMAT = '.', Sample = '.')
@@ -61,9 +62,9 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 			}
 			if(nrow(vars) != 0){
 				message('\n========================\nPathogenicity prediction\n========================')
-				progressr::with_progress(vars <- annotateInterVar(vars))
+				progressr::with_progress(vars <- annotateInterVar(vars, liftover))
 				vars[is.na(vars)] <- NULL
-				message(length(vars), ' variants were annotated.')
+				message(length(vars), ' variants were successfully annotated.')
 				vcf_body <- do.call('rbind', lapply(vars, function(x){
 					tmp <- as.data.frame(x)
 					crit <- tmp[,8:ncol(tmp)]
@@ -82,7 +83,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				}
 			utils::write.table(vcf_header_genotype, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
-			utils::write.table(vcf_body, file = paste0(panelName, '_intervar.vcf'), append = TRUE, sep = '\t', quote = FALSE, 
+			utils::write.table(vcf_body, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), append = TRUE, sep = '\t', quote = FALSE, 
 				col.names = FALSE, row.names = FALSE, na = '')
 		},
 		all = {
@@ -96,7 +97,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				na = '')
 
 			message('\n=========================\nAlphaMissense annotation\n=========================')
-			vcf_body <- constructAM(gns, path)
+			vcf_body <- constructAM(gns, path, liftover)
 			utils::write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
@@ -105,7 +106,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				na = '')
 
 			message('\n========================\nInterVar annotation\n========================')
-			vars <- collectVars(gns, databases, path, type)
+			vars <- collectVars(gns, databases, path, type, liftover)
 			if(isTRUE(saveRaw)){
 				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
 					INFO = '.', FORMAT = '.', Sample = '.')
@@ -114,9 +115,9 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 			}
 			if(nrow(vars) != 0){
 				message('\n========================\nPathogenicity prediction\n========================')
-				progressr::with_progress(vars <- annotateInterVar(vars))
+				vars <- annotateInterVar(vars, liftover)
 				vars[is.na(vars)] <- NULL
-				message(length(vars), ' variants were annotated.')
+				message(length(vars), ' variants were successfully annotated.')
 				vcf_body <- do.call('rbind', lapply(vars, function(x){
 					tmp <- as.data.frame(x)
 					crit <- tmp[,8:ncol(tmp)]
@@ -135,7 +136,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				}
 			utils::write.table(vcf_header_genotype, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
-			utils::write.table(vcf_body, file = paste0(panelName, '_intervar.vcf'), append = TRUE, sep = '\t', quote = FALSE, 
+			utils::write.table(vcf_body, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), append = TRUE, sep = '\t', quote = FALSE, 
 				col.names = FALSE, row.names = FALSE, na = '')
 		}
 	)
