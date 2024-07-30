@@ -8,7 +8,8 @@ collectVars(
   gns,
   databases = c("gnomad_man", "gnomad_auto", "clinvar", "lovd3", "all"),
   path,
-  type = c("exomes", "genomes", "both")
+  type = c("exomes", "genomes", "both"),
+  liftover
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ collectVars(
 \item{path}{Where data were downloaded}
 
 \item{type}{Type of gnomAD data to download.}
+
+\item{liftover}{Should variants be lifted over?}
 }
 \value{
 vcf data.frame

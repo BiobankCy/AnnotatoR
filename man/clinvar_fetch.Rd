@@ -4,12 +4,14 @@
 \alias{clinvar_fetch}
 \title{Fetch ClinVar variants.}
 \usage{
-clinvar_fetch(gns, path)
+clinvar_fetch(gns, path, liftover)
 }
 \arguments{
 \item{gns}{Gene names character vector.}
 
 \item{path}{Where data were downloaded}
+
+\item{liftover}{Should variants be lifted over?}
 }
 \value{
 vcf data.frame

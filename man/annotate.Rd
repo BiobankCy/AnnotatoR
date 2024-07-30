@@ -11,6 +11,7 @@ annotate(
   panelName = "./results/panel",
   path = "./dbs",
   type = c("exomes", "genomes", "both"),
+  liftover = FALSE,
   saveRaw = FALSE
 )
 }
@@ -26,6 +27,8 @@ annotate(
 \item{path}{Where database files will be downloaded.}
 
 \item{type}{Type of gnomAD data to download. Applicable only for \code{intervar} and \code{all} annotators.}
+
+\item{liftover}{Should variants be lifted over?}
 
 \item{saveRaw}{Save all variants without any annotation. Applicable only for \code{intervar} and \code{all} annotators.}
 }

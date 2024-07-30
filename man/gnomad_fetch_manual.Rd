@@ -4,12 +4,14 @@
 \alias{gnomad_fetch_manual}
 \title{Fetch manually downloaded gnomAD variants.}
 \usage{
-gnomad_fetch_manual(map, path)
+gnomad_fetch_manual(map, path, liftover)
 }
 \arguments{
 \item{map}{Gene data as in map.}
 
 \item{path}{Where data were downloaded}
+
+\item{liftover}{Should variants be lifted over?}
 }
 \value{
 vcf data.frame

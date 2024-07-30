@@ -4,12 +4,14 @@
 \alias{lovd3_fetch}
 \title{Fetch lovd3 variants.}
 \usage{
-lovd3_fetch(gns, path)
+lovd3_fetch(gns, path, liftover)
 }
 \arguments{
 \item{gns}{Gene names character vector.}
 
 \item{path}{Where data were downloaded}
+
+\item{liftover}{Should variants be lifted over?}
 }
 \value{
 vcf data.frame
