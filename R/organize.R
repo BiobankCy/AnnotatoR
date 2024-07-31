@@ -208,6 +208,7 @@ collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar
 			progressr::with_progress(out <- unique(rbind(a, b, c)))
 		}
 	)
+	
 	return(out)
 }
 

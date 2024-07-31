@@ -34,7 +34,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 		alphamissense = {
 			message('\n=========================\nAlphaMissense annotation\n=========================')
 			vcf_body <- constructAM(gns, path, liftover)
-			utils::write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
+			utils::write.table(vcf_header_allele, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			utils::write.table(vcf_body, file = paste0(panelName, '_alphaMissense.vcf'), 
@@ -65,26 +65,32 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				progressr::with_progress(vars <- annotateInterVar(vars, liftover))
 				vars[is.na(vars)] <- NULL
 				message(length(vars), ' variants were successfully annotated.')
-				vcf_body <- do.call('rbind', lapply(vars, function(x){
+				vcf_body_hom <- vcf_body_het <- do.call('rbind', lapply(vars, function(x){
 					tmp <- as.data.frame(x)
 					crit <- tmp[,8:ncol(tmp)]
 					data.frame(CHR = paste0('chr', tmp$Chromosome),
 						POS = tmp$Position, 
-						ID = paste0(tmp$Intervar, ' (', 
-							paste(colnames(crit)[crit == 1], collapse = '; '),
+						ID = paste0(gsub(' ', '_', tmp$Intervar), '(', 
+							paste(colnames(crit)[crit == 1], collapse = ';'),
 							')'),
 						REF = tmp$Ref_allele, ALT = tmp$Alt_allele, QUAL = '.',
-						FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
-					}))
+						FILTER = 'PASS', INFO = '.', FORMAT = 'GT:GQ:DP:AD', Sample = '.')
+					
+				}))
+				gq_dp <- sample(80:300, 3)
+				vcf_body_het$Sample <- paste('0/1', gq_dp[1], gq_dp[2]+gq_dp[3], paste(gq_dp[2], gq_dp[3], sep = ','), sep = ':')
+				vcf_body_hom$Sample <- paste('1/1', gq_dp[1], gq_dp[2]+gq_dp[3], paste(gq_dp[2], gq_dp[3], sep = ','), sep = ':')
 				} else {
 					message('Pathogenicity prediction aborted.\nNo variants found.')
-					vcf_body <- data.frame(CHR = character(), POS = character(),
+					vcf_body_het <- vcf_body_hom <- data.frame(CHR = character(), POS = character(),
 						REF = character(), ALT = character())
 				}
-			utils::write.table(vcf_header_genotype, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), 
-				sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
-			utils::write.table(vcf_body, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), append = TRUE, sep = '\t', quote = FALSE, 
-				col.names = FALSE, row.names = FALSE, na = '')
+			for(i in c('het', 'hom')){
+				utils::write.table(vcf_header_genotype, file = paste(panelName, databases, i, 'intervar.vcf', sep = '_'), 
+					sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
+				utils::write.table(get(paste0('vcf_body_', i)), file = paste(panelName, databases, i, 'intervar.vcf', sep = '_'), append = TRUE, sep = '\t', quote = FALSE, 
+					col.names = FALSE, row.names = FALSE, na = '')
+			}
 		},
 		all = {
 			message('\n=========================\nREVEL annotation\n=========================')
@@ -98,7 +104,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 
 			message('\n=========================\nAlphaMissense annotation\n=========================')
 			vcf_body <- constructAM(gns, path, liftover)
-			utils::write.table(vcf_header_genotype, file = paste0(panelName, '_alphaMissense.vcf'), 
+			utils::write.table(vcf_header_allele, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			utils::write.table(vcf_body, file = paste0(panelName, '_alphaMissense.vcf'), 
@@ -115,29 +121,34 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 			}
 			if(nrow(vars) != 0){
 				message('\n========================\nPathogenicity prediction\n========================')
-				vars <- annotateInterVar(vars, liftover)
+				progressr::with_progress(vars <- annotateInterVar(vars, liftover))
 				vars[is.na(vars)] <- NULL
 				message(length(vars), ' variants were successfully annotated.')
-				vcf_body <- do.call('rbind', lapply(vars, function(x){
+				vcf_body_hom <- vcf_body_het <- do.call('rbind', lapply(vars, function(x){
 					tmp <- as.data.frame(x)
 					crit <- tmp[,8:ncol(tmp)]
 					data.frame(CHR = paste0('chr', tmp$Chromosome),
 						POS = tmp$Position, 
-						ID = paste0(tmp$Intervar, ' (', 
-							paste(colnames(crit)[crit == 1], collapse = '; '),
+						ID = paste0(gsub(' ', '_', tmp$Intervar), '(', 
+							paste(colnames(crit)[crit == 1], collapse = ';'),
 							')'),
 						REF = tmp$Ref_allele, ALT = tmp$Alt_allele, QUAL = '.',
-						FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
-					}))
+						FILTER = 'PASS', INFO = '.', FORMAT = 'GT:GQ:DP:AD', Sample = '.')
+				}))
+				gq_dp <- sample(80:300, 3)
+				vcf_body_het$Sample <- paste('0/1', gq_dp[1], gq_dp[2]+gq_dp[3], paste(gq_dp[2], gq_dp[3], sep = ','), sep = ':')
+				vcf_body_hom$Sample <- paste('1/1', gq_dp[1], gq_dp[2]+gq_dp[3], paste(gq_dp[2], gq_dp[3], sep = ','), sep = ':')
 				} else {
 					message('Pathogenicity prediction aborted.\nNo variants found.')
-					vcf_body <- data.frame(CHR = character(), POS = character(),
+					vcf_body_het <- vcf_body_hom <- data.frame(CHR = character(), POS = character(),
 						REF = character(), ALT = character())
 				}
-			utils::write.table(vcf_header_genotype, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), 
-				sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
-			utils::write.table(vcf_body, file = paste(panelName, databases, 'intervar.vcf', sep = '_'), append = TRUE, sep = '\t', quote = FALSE, 
-				col.names = FALSE, row.names = FALSE, na = '')
+			for(i in c('het', 'hom')){
+				utils::write.table(vcf_header_genotype, file = paste(panelName, databases, i, 'intervar.vcf', sep = '_'), 
+					sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
+				utils::write.table(get(paste0('vcf_body_', i)), file = paste(panelName, databases, i, 'intervar.vcf', sep = '_'), append = TRUE, sep = '\t', quote = FALSE, 
+					col.names = FALSE, row.names = FALSE, na = '')
+			}
 		}
 	)
 }
