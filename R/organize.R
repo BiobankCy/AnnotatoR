@@ -45,14 +45,15 @@ constructAM <- function(gns, path, liftover){
 #'
 #' @param gns Gene names character vector.
 #' @param path Where data were downloaded
+#' @param liftover Should variants be lifted over?
 #' @return vcf data.frame
 #' @export
-constructREVEL <- function(gns, path){
+constructREVEL <- function(gns, path, liftover){
 	path <- file.path(path, 'revel')
 	suppressWarnings(dir.create(path, recursive = TRUE))
 
 	# Gene coordinates (hg19 for revel 1.3 file names)
-	map <- map_fetch('EnsDb.Hsapiens.v86', gns, trans = FALSE)
+	map <- map_fetch('EnsDb.Hsapiens.v75', gns, trans = FALSE)
 	map <- split(map, f = map$seqnames)
 
 	# Download revel data files for respective chromosomes
@@ -78,21 +79,23 @@ constructREVEL <- function(gns, path){
 		rownames(segs) <- NULL
 
 		# Gather data per gene
-		for(k in rownames(map[[i]])){
+		iii <- paste0('chr', i)
+		for(k in rownames(map[[iii]])){
 			revel <- utils::read.csv(
 				list.files(name, full.names = TRUE)[which(
-					segs$start < map[[i]][k, 'start'] & 
-					segs$end > map[[i]][k, 'end'])]
+					segs$start < map[[iii]][k, 'start'] & 
+					segs$end > map[[iii]][k, 'end'])]
 			)
-			revel_vcf <- data.frame(CHR = revel$chr,
-				POS = revel$grch38_pos, ID = round(revel$REVEL, 2), 
+			# Instead of applying a liftover, choose the hg19 revel column
+			tmp <- ifelse(isTRUE(liftover), 'hg19_pos', 'grch38_pos')
+			revel_vcf <- data.frame(CHR = paste0('chr', revel$chr),
+				POS = revel[,tmp], ID = round(revel$REVEL, 2), 
 				REF = revel$ref, ALT = revel$alt, QUAL = '.',
 				FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
-			# # Maintain variants within panel genes start/end +/- 1000 nts
-			# revel_data[[k]] <- revel_vcf[which(revel_vcf$POS > map[[i]][k, 'start'] - 1000 & 
-			# 	revel_vcf$POS > map[[i]][k, 'end'] + 1000),]
-			revel_data[[i]] <- revel_vcf
-
+			# Maintain variants within panel genes
+			revel_data[[iii]] <- revel_vcf[which(
+				revel_vcf$POS > map[[iii]][k, 'start'] & 
+				revel_vcf$POS < map[[iii]][k, 'end']),]
 		}
 	}
 	revel_data <- do.call('rbind', revel_data)
@@ -208,7 +211,7 @@ collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar
 			progressr::with_progress(out <- unique(rbind(a, b, c)))
 		}
 	)
-	
+
 	return(out)
 }
 

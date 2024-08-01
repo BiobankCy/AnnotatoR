@@ -23,7 +23,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 	switch(annotators,
 		revel = {
 			message('\n=========================\nREVEL annotation\n=========================')
-			vcf_body <- constructREVEL(gns, path)
+			vcf_body <- constructREVEL(gns, path, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
@@ -94,7 +94,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 		},
 		all = {
 			message('\n=========================\nREVEL annotation\n=========================')
-			vcf_body <- constructREVEL(gns, path)
+			vcf_body <- constructREVEL(gns, path, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
