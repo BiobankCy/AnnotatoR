@@ -111,6 +111,15 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 
+			message('\n========================\nClinVar annotation\n========================')
+			vcf_body <- constructClinVar(gns, path, liftover)
+			utils::write.table(vcf_header_allele, file = paste0(panelName, '_clinvar_sig.vcf'), 
+				sep = '\t', quote = FALSE, col.names = FALSE, 
+				row.names = FALSE)
+			utils::write.table(vcf_body, file =  paste0(panelName, '_clinvar_sig.vcf'), 
+				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
+				na = '')
+
 			message('\n========================\nInterVar annotation\n========================')
 			vars <- collectVars(gns, databases, path, type, liftover)
 			if(isTRUE(saveRaw)){

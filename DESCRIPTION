@@ -24,4 +24,5 @@ Imports:
     stringr,
     utils,
     SummarizedExperiment,
-    VariantAnnotation
+    VariantAnnotation,
+    dplyr

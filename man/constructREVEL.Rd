@@ -4,12 +4,14 @@
 \alias{constructREVEL}
 \title{Contruct REVEL annotation file.}
 \usage{
-constructREVEL(gns, path)
+constructREVEL(gns, path, liftover)
 }
 \arguments{
 \item{gns}{Gene names character vector.}
 
 \item{path}{Where data were downloaded}
+
+\item{liftover}{Should variants be lifted over?}
 }
 \value{
 vcf data.frame

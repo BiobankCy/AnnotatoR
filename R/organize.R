@@ -1,4 +1,5 @@
 `%!in%` <- Negate(`%in%`)
+`%>%` <- dplyr::`%>%`
 
 #' Contruct AlphaMissense annotation file.
 #'
@@ -128,8 +129,10 @@ constructClinVar <- function(gns, path, liftover){
 	# CLNREVSTAT: review status for the aggregate germline classification
 	params <- VariantAnnotation::ScanVcfParam(info = c('GENEINFO', 'CLNSIG', 'CLNREVSTAT'))
 	vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
-	rg <- SummarizedExperiment::rowRanges(vcf)
-	inf <- VariantAnnotation::info(vcf)
+	# Genes of interest & at least one star
+	vcf_sel <- vcf[grep(paste0('^', gns, collapse = '|'), VariantAnnotation::info(vcf)$GENEINFO),]
+	rg <- SummarizedExperiment::rowRanges(vcf_sel)
+	inf <- VariantAnnotation::info(vcf_sel)
 	clinvar_vcf <- data.frame(
 		CHR = paste0('chr', as.character(GenomicRanges::seqnames(rg))), 
 		POS = as.data.frame(rg@ranges)$start,
@@ -143,14 +146,30 @@ constructClinVar <- function(gns, path, liftover){
 	)
 	# Genes of interest & at least one star
 	clinvar_vcf <- merge(
-		clinvar_vcf[grep(paste(gns, collapse = '|'), clinvar_vcf$GENEINFO), ],
+		clinvar_vcf[grep(paste0('^', gns, collapse = '|'), clinvar_vcf$GENEINFO), ],
 		revstatus_map[which(revstatus_map$stars != 'none'), ], 
 		by = 'REVSTAT'
+	)
+
+	clinvar_vcf <- clinvar_vcf %>%
+	dplyr::mutate(
+	  	SIG = dplyr::recode(SIG, 
+			'Conflicting_classifications_of_pathogenicity' = 'Conflicting',
+			'Benign/Likely_benign' = 'BLB',
+			'Likely_benign' = 'Likely_benign',
+			'Benign' = 'Benign',
+			'Uncertain_significance' = 'VUS',
+			'Likely_pathogenic' = 'LP',
+			'Pathogenic/Likely_pathogenic' = 'PLP',
+			'Pathogenic' = 'P'
+	  	)
 	)
 	clinvar_vcf <- data.frame(CHR = clinvar_vcf$CHR,
 		POS = clinvar_vcf$POS, ID = paste0(clinvar_vcf$SIG, '(', clinvar_vcf$stars, ')'), 
 		REF = clinvar_vcf$REF, ALT = clinvar_vcf$ALT, QUAL = '.',
 		FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
+	clinvar_vcf <- clinvar_vcf[which(nchar(clinvar_vcf$REF) < 1000),]
+	clinvar_vcf <- clinvar_vcf[which(nchar(clinvar_vcf$ALT) < 1000),]
 	if(isTRUE(liftover)) clinvar_vcf$POS <- as.data.frame(lift(clinvar_vcf))$start
 	return(clinvar_vcf)
 }
@@ -351,20 +370,22 @@ clinvar_fetch <- function(gns, path, liftover){
 	    Rsamtools::indexTabix(file.gz, format="vcf")
 	params <- VariantAnnotation::ScanVcfParam(info = 'GENEINFO')
 	vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
-	rg <- SummarizedExperiment::rowRanges(vcf)
-	inf <- VariantAnnotation::info(vcf)
+	# Genes of interest & at least one star
+	vcf_sel <- vcf[grep(paste0('^', gns, collapse = '|'), VariantAnnotation::info(vcf)$GENEINFO),]
+	rg <- SummarizedExperiment::rowRanges(vcf_sel)
+	inf <- VariantAnnotation::info(vcf_sel)
 	clinvar_vcf <- data.frame(
 		CHR = paste0('chr', as.character(GenomicRanges::seqnames(rg))),
 		POS = as.data.frame(rg@ranges)$start, 
 		REF = as.character(S4Vectors::DataFrame(rg)$REF), 
-		ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT)),
-		GENEINFO = as.character(inf$GENEINFO)
+		ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))#,
+		# GENEINFO = as.character(inf$GENEINFO)
 	)
 	# system(paste0('bcftools query -f "%CHROM %POS %REF %ALT %GENEINFO\n" ', file.path(pathTmp, 'clinvar.vcf.gz'), 
 	# 	' > ', file.path(pathTmp, 'clinvar_tmp.vcf')))
 	# clinvar_vcf <- read.table(file.path(pathTmp, 'clinvar_tmp.vcf'))
 	# colnames(clinvar_vcf) <- c('CHR', 'POS', 'REF', 'ALT', 'GENEINFO')
-	clinvar_vcf <- clinvar_vcf[grep(paste(gns, collapse = '|'), clinvar_vcf$GENEINFO), 1:4]
+	# clinvar_vcf <- clinvar_vcf[grep(paste(gns, collapse = '|'), clinvar_vcf$GENEINFO), 1:4]
 	if(isTRUE(liftover)) clinvar_vcf$POS <- as.data.frame(lift(clinvar_vcf))$start
 	unlink(file.path(pathTmp, 'clinvar_tmp.vcf'))
 	return(clinvar_vcf)
