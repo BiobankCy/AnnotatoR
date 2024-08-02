@@ -177,6 +177,51 @@ constructClinVar <- function(gns, path, liftover){
 	return(clinvar_vcf)
 }
 
+#' Retrieve gnomAD allele frequencies.
+#'
+#' A wrapper function to retrieve population allele frequencies as recorded in gnomAD.
+#' 
+#' @param gns Gene names character vector.
+#' @param path Where data were downloaded
+#' @param type Type of gnomAD data to download.
+#' @param liftover Should variants be lifted over?
+#' @return vcf data.frame
+#' @export
+constructAF <- function(gns, path, databases = c('gnomad_man', 'gnomad_auto'), type = c('exomes', 'genomes', 'both'), liftover){
+
+	# Get gene data
+	message('Preparing data')
+	map <- map_fetch('EnsDb.Hsapiens.v86', gns, trans = FALSE)
+	map <- split(map, f = map$seqnames)
+
+	databases <- match.arg(databases)
+	type <- match.arg(type)
+	switch(databases,
+		gnomad_man = {
+			pathTmp <- file.path(path, 'gnomad/manual')
+			if(!dir.exists(pathTmp)){
+				message('gnomAD files are missing. Proceed to download')
+				out <- gnomad_fetch_auto(map, type, path, liftover, af = TRUE)
+			} else if (dir.exists(pathTmp)) {
+				gns_tmp <- do.call('rbind', map)$gene_id
+				files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
+					full.names = TRUE)
+				if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
+					out <- gnomad_fetch_manual(map, path, liftover, af = TRUE)
+				} else {
+					message('gnomAD files are missing. Proceed to download')
+					out <- gnomad_fetch_auto(map, type, path, liftover, af = TRUE)
+				}
+			}
+		},
+		gnomad_auto = {
+			out <- gnomad_fetch_auto(map, type, path, liftover, af = TRUE)
+		}
+	)
+	af_vcf <- data.frame(out, QUAL = '.', FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
+	return(af_vcf)
+}
+
 #' Collect known variants.
 #'
 #' A wrapper function to collect known variants for specific genes
@@ -244,8 +289,9 @@ collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar
 #' @param map Gene data as in map. 
 #' @param path Where data were downloaded
 #' @param liftover Should variants be lifted over?
+#' @param af Maintain allele frequencies?
 #' @return vcf data.frame
-gnomad_fetch_manual <- function(map, path, liftover){
+gnomad_fetch_manual <- function(map, path, liftover, af = FALSE){
 	pathTmp <- file.path(path, 'gnomad/manual')
 	if(!dir.exists(pathTmp)){
 		stop('gnomAD files are missing')
@@ -256,11 +302,27 @@ gnomad_fetch_manual <- function(map, path, liftover){
 			full.names = TRUE)
 		if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
 			gnomad_vcf <- do.call('rbind', lapply(as.list(files), function(x){
-					tmp <- utils::read.delim(x, sep = ',')[,c('Chromosome', 'Position', 'Reference', 'Alternate')]
-					colnames(tmp) <- c('CHR', 'POS', 'REF', 'ALT')
+					tmp <- utils::read.delim(x, sep = ',')
+					colnames(tmp)[c(2,3,5,6)] <- c('CHR', 'POS', 'REF', 'ALT')
+					tmp$CHR <- paste0('chr', tmp$CHR)
 					return(tmp)
 			}))
-			gnomad_vcf$CHR <- paste0('chr', gnomad_vcf$CHR)
+			if(!isTRUE(af)){
+				gnomad_vcf <- gnomad_vcf[,c('CHR', 'POS', 'REF', 'ALT')]
+				} else {
+					gnomad_vcf <- gnomad_vcf[,c('CHR', 'POS', 'Allele.Frequency', 'REF', 'ALT')]
+					colnames(gnomad_vcf)[3] <- 'ID'
+					gnomad_vcf$ID <- gnomad_vcf$ID*100
+					gnomad_vcf <- gnomad_vcf %>% dplyr::mutate(
+						ID = dplyr::case_when(
+							ID < 0.0001  ~ "<0.0001",
+							ID > 0.0001 & ID < 0.001  ~ "<0.001",
+							ID > 0.001 & ID < 0.01  ~ "<0.01",
+							ID > 0.01 & ID < 0.1  ~ "<0.1",
+							.default = as.character(round(ID, 2))
+						)  
+					)
+				}
 			if(isTRUE(liftover)) gnomad_vcf$POS <- as.data.frame(lift(gnomad_vcf))$start
 			return(gnomad_vcf)
 		} else {
@@ -277,8 +339,9 @@ gnomad_fetch_manual <- function(map, path, liftover){
 #' @param type Type of gnomAD data to download.
 #' @param path Where data were downloaded
 #' @param liftover Should variants be lifted over?
+#' @param af Maintain allele frequencies?
 #' @return vcf data.frame
-gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path, liftover){
+gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path, liftover, af = FALSE){
 	pathTmp <- file.path(path, 'gnomad')
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
 	type <- match.arg(type)
@@ -295,12 +358,23 @@ gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path, 
 				params <- VariantAnnotation::ScanVcfParam(which = gr)
 				vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
 				rg <- SummarizedExperiment::rowRanges(vcf)
-				out <- data.frame(
-					CHR = as.character(GenomicRanges::seqnames(rg)), 
-					POS = as.data.frame(rg@ranges)$start, 
-					REF = as.character(S4Vectors::DataFrame(rg)$REF), 
-					ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
-				)
+				if(!isTRUE(af)) {
+					out <- data.frame(
+						CHR = as.character(GenomicRanges::seqnames(rg)), 
+						POS = as.data.frame(rg@ranges)$start, 
+						REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+						ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+					)
+					} else {
+						inf <- VariantAnnotation::info(vcf)
+						out <- data.frame(
+							CHR = as.character(GenomicRanges::seqnames(rg)), 
+							POS = as.data.frame(rg@ranges)$start, 
+							ID = as.character(inf$AF),
+							REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+							ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+						)
+					}
 				if(isTRUE(liftover)) out$POS <- as.data.frame(lift(out))$start
 				return(out)
 			},
@@ -314,12 +388,23 @@ gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path, 
 				params <- VariantAnnotation::ScanVcfParam(which = gr)
 				vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
 				rg <- SummarizedExperiment::rowRanges(vcf)
-				out <- data.frame(
-					CHR = as.character(GenomicRanges::seqnames(rg)), 
-					POS = as.data.frame(rg@ranges)$start, 
-					REF = as.character(S4Vectors::DataFrame(rg)$REF), 
-					ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
-				)
+				if(!isTRUE(af)) {
+					out <- data.frame(
+						CHR = as.character(GenomicRanges::seqnames(rg)), 
+						POS = as.data.frame(rg@ranges)$start, 
+						REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+						ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+					)
+					} else {
+						inf <- VariantAnnotation::info(vcf)
+						out <- data.frame(
+							CHR = as.character(GenomicRanges::seqnames(rg)), 
+							POS = as.data.frame(rg@ranges)$start, 
+							ID = as.character(inf$AF),
+							REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+							ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+						)
+					}
 				if(isTRUE(liftover)) out$POS <- as.data.frame(lift(out))$start
 				return(out)
 			},
@@ -335,12 +420,23 @@ gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path, 
 					params <- VariantAnnotation::ScanVcfParam(which = gr)
 					vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
 					rg <- SummarizedExperiment::rowRanges(vcf)
-					out[[k]] <- data.frame(
-						CHR = as.character(GenomicRanges::seqnames(rg)), 
-						POS = as.data.frame(rg@ranges)$start, 
-						REF = as.character(S4Vectors::DataFrame(rg)$REF), 
-						ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
-					)
+					if(!isTRUE(af)) {
+						out[[k]] <- data.frame(
+							CHR = as.character(GenomicRanges::seqnames(rg)), 
+							POS = as.data.frame(rg@ranges)$start, 
+							REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+							ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+						)
+						} else {
+							inf <- VariantAnnotation::info(vcf)
+							out[[k]] <- data.frame(
+								CHR = as.character(GenomicRanges::seqnames(rg)), 
+								POS = as.data.frame(rg@ranges)$start, 
+								ID = as.character(inf$AF),
+								REF = as.character(S4Vectors::DataFrame(rg)$REF), 
+								ALT = as.character(unlist(S4Vectors::DataFrame(rg)$ALT))
+							)
+						}
 					if(isTRUE(liftover)) out[[k]]$POS <- as.data.frame(lift(out[[k]]))$start
 				}
 				return(do.call('rbind', out))

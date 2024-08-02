@@ -3,6 +3,7 @@
 export(annotate)
 export(annotateInterVar)
 export(collectVars)
+export(constructAF)
 export(constructAM)
 export(constructClinVar)
 export(constructREVEL)

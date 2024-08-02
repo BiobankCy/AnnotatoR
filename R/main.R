@@ -12,7 +12,7 @@
 #' @param saveRaw Save all variants without any annotation. Applicable only for `intervar` and `all` annotators.
 #' @return IonReporter annotation files.
 #' @export
-annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig', 'intervar', 'all'),
+annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig', 'gnomad_af', 'intervar', 'all'),
 	databases = c('gnomad_man', 'gnomad_auto', 'clinvar', 'lovd3', 'all'), panelName = './results/panel',
 	path = './dbs', type = c('exomes', 'genomes', 'both'), liftover = FALSE, saveRaw = FALSE){
 
@@ -48,6 +48,16 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			utils::write.table(vcf_body, file =  paste0(panelName, '_clinvar_sig.vcf'), 
+				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
+				na = '')
+		},
+		gnomad_af = {
+			message('\n========================\ngnomAD frequencies\n========================')
+			vcf_body <- constructAF(gns, path, databases, type, liftover)
+			utils::write.table(vcf_header_allele, file = paste0(panelName, '_gnomad_af.vcf'), 
+				sep = '\t', quote = FALSE, col.names = FALSE, 
+				row.names = FALSE)
+			utils::write.table(vcf_body, file =  paste0(panelName, '_gnomad_af.vcf'), 
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 		},
@@ -117,6 +127,15 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				sep = '\t', quote = FALSE, col.names = FALSE, 
 				row.names = FALSE)
 			utils::write.table(vcf_body, file =  paste0(panelName, '_clinvar_sig.vcf'), 
+				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
+				na = '')
+
+			message('\n========================\ngnomAD frequencies\n========================')
+			vcf_body <- constructAF(gns, path, databases, type, liftover)
+			utils::write.table(vcf_header_allele, file = paste0(panelName, '_gnomad_af.vcf'), 
+				sep = '\t', quote = FALSE, col.names = FALSE, 
+				row.names = FALSE)
+			utils::write.table(vcf_body, file =  paste0(panelName, '_gnomad_af.vcf'), 
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 

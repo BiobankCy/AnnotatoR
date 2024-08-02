@@ -6,7 +6,7 @@
 \usage{
 annotate(
   gns,
-  annotators = c("revel", "alphamissense", "clinvar_sig", "intervar", "all"),
+  annotators = c("revel", "alphamissense", "clinvar_sig", "gnomad_af", "intervar", "all"),
   databases = c("gnomad_man", "gnomad_auto", "clinvar", "lovd3", "all"),
   panelName = "./results/panel",
   path = "./dbs",

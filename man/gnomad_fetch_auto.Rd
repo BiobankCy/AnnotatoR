@@ -4,7 +4,13 @@
 \alias{gnomad_fetch_auto}
 \title{Fetch gnomAD variants.}
 \usage{
-gnomad_fetch_auto(map, type = c("exomes", "genomes", "both"), path, liftover)
+gnomad_fetch_auto(
+  map,
+  type = c("exomes", "genomes", "both"),
+  path,
+  liftover,
+  af = FALSE
+)
 }
 \arguments{
 \item{map}{Gene data as in map.}
@@ -14,6 +20,8 @@ gnomad_fetch_auto(map, type = c("exomes", "genomes", "both"), path, liftover)
 \item{path}{Where data were downloaded}
 
 \item{liftover}{Should variants be lifted over?}
+
+\item{af}{Maintain allele frequencies?}
 }
 \value{
 vcf data.frame
