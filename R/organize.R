@@ -129,7 +129,7 @@ constructClinVar <- function(gns, path, liftover){
 	# CLNREVSTAT: review status for the aggregate germline classification
 	params <- VariantAnnotation::ScanVcfParam(info = c('GENEINFO', 'CLNSIG', 'CLNREVSTAT'))
 	vcf <- VariantAnnotation::readVcf(Rsamtools::TabixFile(file.gz), 'hg38', params)
-	# Genes of interest & at least one star
+	# Genes of interest
 	vcf_sel <- vcf[grep(paste0('^', gns, collapse = '|'), VariantAnnotation::info(vcf)$GENEINFO),]
 	rg <- SummarizedExperiment::rowRanges(vcf_sel)
 	inf <- VariantAnnotation::info(vcf_sel)
@@ -144,20 +144,22 @@ constructClinVar <- function(gns, path, liftover){
 		REVSTAT= as.character(unlist(lapply(
 			S4Vectors::DataFrame(inf)$CLNREVSTAT, paste, collapse = ',')))
 	)
-	# Genes of interest & at least one star
+	# At least one star
 	clinvar_vcf <- merge(
 		clinvar_vcf[grep(paste0('^', gns, collapse = '|'), clinvar_vcf$GENEINFO), ],
 		revstatus_map[which(revstatus_map$stars != 'none'), ], 
 		by = 'REVSTAT'
 	)
+	# # Remove regions overlapping LOCs
+	# clinvar_vcf <- clinvar_vcf[grep('LOC|DT', clinvar_vcf$GENEINFO, invert = TRUE), ]
 
 	clinvar_vcf <- clinvar_vcf %>%
 	dplyr::mutate(
 	  	SIG = dplyr::recode(SIG, 
 			'Conflicting_classifications_of_pathogenicity' = 'Conflicting',
 			'Benign/Likely_benign' = 'BLB',
-			'Likely_benign' = 'Likely_benign',
-			'Benign' = 'Benign',
+			'Likely_benign' = 'LB',
+			'Benign' = 'B',
 			'Uncertain_significance' = 'VUS',
 			'Likely_pathogenic' = 'LP',
 			'Pathogenic/Likely_pathogenic' = 'PLP',
@@ -168,8 +170,9 @@ constructClinVar <- function(gns, path, liftover){
 		POS = clinvar_vcf$POS, ID = paste0(clinvar_vcf$SIG, '(', clinvar_vcf$stars, ')'), 
 		REF = clinvar_vcf$REF, ALT = clinvar_vcf$ALT, QUAL = '.',
 		FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
-	clinvar_vcf <- clinvar_vcf[which(nchar(clinvar_vcf$REF) < 1000),]
-	clinvar_vcf <- clinvar_vcf[which(nchar(clinvar_vcf$ALT) < 1000),]
+	# # Remove off gene variants
+	# map <- map_fetch('EnsDb.Hsapiens.v86', gns)
+	# clinvar_vcf <- clinvar_vcf[which(clinvar_vcf$POS >= map$start & clinvar_vcf$POS <= map$end), ]
 	if(isTRUE(liftover)) clinvar_vcf$POS <- as.data.frame(lift(clinvar_vcf))$start
 	return(clinvar_vcf)
 }
