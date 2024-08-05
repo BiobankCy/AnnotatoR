@@ -43,6 +43,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 		},
 		clinvar_sig = {
 			message('\n========================\nClinVar annotation\n========================')
+			message('ClinVar annotation is currently retrieved from gnomAD')
 			vcf_body <- constructClinVar(gns, path, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_clinvar_sig.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 

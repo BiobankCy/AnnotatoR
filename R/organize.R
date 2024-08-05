@@ -116,7 +116,7 @@ constructREVEL <- function(gns, path, liftover){
 #' @param liftover Should variants be lifted over?
 #' @return vcf data.frame
 #' @export
-constructClinVar <- function(gns, path, liftover){
+constructClinVar_deprecated <- function(gns, path, liftover){
 	path <- file.path(path, 'clinvar')
 	suppressWarnings(dir.create(path, recursive = TRUE))
 	message('Fetching ClinVar variants')
@@ -154,18 +154,18 @@ constructClinVar <- function(gns, path, liftover){
 	# clinvar_vcf <- clinvar_vcf[grep('LOC|DT', clinvar_vcf$GENEINFO, invert = TRUE), ]
 
 	clinvar_vcf <- clinvar_vcf %>%
-	dplyr::mutate(
-	  	SIG = dplyr::recode(SIG, 
-			'Conflicting_classifications_of_pathogenicity' = 'Conflicting',
-			'Benign/Likely_benign' = 'BLB',
-			'Likely_benign' = 'LB',
-			'Benign' = 'B',
-			'Uncertain_significance' = 'VUS',
-			'Likely_pathogenic' = 'LP',
-			'Pathogenic/Likely_pathogenic' = 'PLP',
-			'Pathogenic' = 'P'
-	  	)
-	)
+		dplyr::mutate(
+		  	SIG = dplyr::recode(SIG, 
+				'Conflicting_classifications_of_pathogenicity' = 'Conflicting',
+				'Benign/Likely_benign' = 'BLB',
+				'Likely_benign' = 'LB',
+				'Benign' = 'B',
+				'Uncertain_significance' = 'VUS',
+				'Likely_pathogenic' = 'LP',
+				'Pathogenic/Likely_pathogenic' = 'PLP',
+				'Pathogenic' = 'P'
+		  	)
+		)
 	clinvar_vcf <- data.frame(CHR = clinvar_vcf$CHR,
 		POS = clinvar_vcf$POS, ID = paste0(clinvar_vcf$SIG, '(', clinvar_vcf$stars, ')'), 
 		REF = clinvar_vcf$REF, ALT = clinvar_vcf$ALT, QUAL = '.',
@@ -175,6 +175,41 @@ constructClinVar <- function(gns, path, liftover){
 	# clinvar_vcf <- clinvar_vcf[which(clinvar_vcf$POS >= map$start & clinvar_vcf$POS <= map$end), ]
 	if(isTRUE(liftover)) clinvar_vcf$POS <- as.data.frame(lift(clinvar_vcf))$start
 	return(clinvar_vcf)
+}
+
+#' Retrieve ClinVar significance.
+#'
+#' A wrapper function to retrieve ClinVar variant significance from gnomAD.
+#' Manually downloaded gnomAD files are required.
+#'
+#' @param gns Gene names character vector.
+#' @param path Where data were downloaded
+#' @param liftover Should variants be lifted over?
+#' @return vcf data.frame
+#' @export
+constructClinVar <- function(gns, path, liftover){
+
+	# Get gene data
+	message('Preparing data')
+	map <- map_fetch('EnsDb.Hsapiens.v86', gns, trans = FALSE)
+	map <- split(map, f = map$seqnames)
+
+	pathTmp <- file.path(path, 'gnomad/manual')
+	if(!dir.exists(pathTmp)){
+		stop('gnomAD files are missing. Manually downloaded gnomAD files are required.')
+	} else if (dir.exists(pathTmp)) {
+		gns_tmp <- do.call('rbind', map)$gene_id
+		files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
+			full.names = TRUE)
+		if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
+			out <- gnomad_fetch_manual(map, path, liftover, sig = TRUE)
+		} else {
+			stop('gnomAD files are missing. Manually downloaded gnomAD files are required.')
+		}
+	}
+	
+	af_vcf <- data.frame(out, QUAL = '.', FILTER = 'PASS', INFO = '.', FORMAT = '.', Sample = '.')
+	return(af_vcf)
 }
 
 #' Retrieve gnomAD allele frequencies.
@@ -193,6 +228,8 @@ constructAF <- function(gns, path, databases = c('gnomad_man', 'gnomad_auto'), t
 	message('Preparing data')
 	map <- map_fetch('EnsDb.Hsapiens.v86', gns, trans = FALSE)
 	map <- split(map, f = map$seqnames)
+
+	if(databases %in% c('clinvar', 'lovd3', 'all')) databases <- 'gnomad_man'
 
 	databases <- match.arg(databases)
 	type <- match.arg(type)
@@ -291,7 +328,8 @@ collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar
 #' @param liftover Should variants be lifted over?
 #' @param af Maintain allele frequencies?
 #' @return vcf data.frame
-gnomad_fetch_manual <- function(map, path, liftover, af = FALSE){
+gnomad_fetch_manual <- function(map, path, liftover, af = FALSE, sig = FALSE){
+	if(isTRUE(af) & isTRUE(sig)) stop('Only one of `af`, `sig` should be TRUE')
 	pathTmp <- file.path(path, 'gnomad/manual')
 	if(!dir.exists(pathTmp)){
 		stop('gnomAD files are missing')
@@ -307,9 +345,9 @@ gnomad_fetch_manual <- function(map, path, liftover, af = FALSE){
 					tmp$CHR <- paste0('chr', tmp$CHR)
 					return(tmp)
 			}))
-			if(!isTRUE(af)){
+			if(!isTRUE(af) & !isTRUE(sig)){
 				gnomad_vcf <- gnomad_vcf[,c('CHR', 'POS', 'REF', 'ALT')]
-				} else {
+				} else if (isTRUE(af)){
 					gnomad_vcf <- gnomad_vcf[,c('CHR', 'POS', 'Allele.Frequency', 'REF', 'ALT')]
 					colnames(gnomad_vcf)[3] <- 'ID'
 					gnomad_vcf$ID <- gnomad_vcf$ID*100
@@ -322,6 +360,23 @@ gnomad_fetch_manual <- function(map, path, liftover, af = FALSE){
 							.default = as.character(round(ID, 2))
 						)  
 					)
+				} else {
+					gnomad_vcf <- gnomad_vcf[,c('CHR', 'POS', 'ClinVar.Clinical.Significance', 'REF', 'ALT')]
+					colnames(gnomad_vcf)[3] <- 'ID'
+					gnomad_vcf <- na.omit(gnomad_vcf[which(gnomad_vcf$ID %!in% c('', 'not provided')),])
+					gnomad_vcf <- gnomad_vcf %>%
+						dplyr::mutate(
+						  	ID = dplyr::recode(ID, 
+								'Conflicting interpretations of pathogenicity' = 'Conflicting',
+								'Benign/Likely benign' = 'BLB',
+								'Likely benign' = 'LB',
+								'Benign' = 'B',
+								'Uncertain significance' = 'VUS',
+								'Likely pathogenic' = 'LP',
+								'Pathogenic/Likely pathogenic' = 'PLP',
+								'Pathogenic' = 'P'
+						  	)
+						)
 				}
 			if(isTRUE(liftover)) gnomad_vcf$POS <- as.data.frame(lift(gnomad_vcf))$start
 			return(gnomad_vcf)
