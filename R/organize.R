@@ -374,9 +374,18 @@ gnomad_fetch_manual <- function(map, path, liftover, af = FALSE, sig = FALSE){
 								'Uncertain significance' = 'VUS',
 								'Likely pathogenic' = 'LP',
 								'Pathogenic/Likely pathogenic' = 'PLP',
-								'Pathogenic' = 'P'
+								'Pathogenic' = 'P',
+								'risk factor' = 'Risk_factor',
+								'Conflicting interpretations of pathogenicity; other; risk factor' = 'Conflicting_Risk_factor',
+								'drug response' = 'Drug_response',
+								'Benign/Likely benign; other' = 'BLB_Other',
+								'confers sensitivity' = 'Confers_sensitivity',
+								'Benign; confers sensitivity' = 'B_Confers_sensitivity',
+								'confers sensitivity; other' = 'Confers_sensitivity_Other'
 						  	)
 						)
+					# To cover other possible entries
+					gnomad_vcf$ID <- gsub(' *', '_', gnomad_vcf$ID)
 				}
 			if(isTRUE(liftover)) gnomad_vcf$POS <- as.data.frame(lift(gnomad_vcf))$start
 			return(gnomad_vcf)
