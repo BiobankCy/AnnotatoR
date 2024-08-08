@@ -17,6 +17,7 @@ Imports:
     ensembldb,
     GenomicRanges,
     httr,
+    jsonlite,
     IRanges,
     progressr,
     rjson,

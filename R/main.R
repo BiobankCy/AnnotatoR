@@ -12,9 +12,10 @@
 #' @param saveRaw Save all variants without any annotation. Applicable only for `intervar` and `all` annotators.
 #' @return IonReporter annotation files.
 #' @export
-annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig', 'gnomad_af', 'intervar', 'all'),
-	databases = c('gnomad_man', 'gnomad_auto', 'clinvar', 'lovd3', 'all'), panelName = './results/panel',
-	path = './dbs', type = c('exomes', 'genomes', 'both'), liftover = FALSE, saveRaw = FALSE){
+annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig', 'gnomad_af', 'intervar', 
+	'mutation_taster', 'all'), databases = c('gnomad_man', 'gnomad_auto', 'clinvar', 'lovd3', 'all'), 
+	panelName = './results/panel', path = './dbs', type = c('exomes', 'genomes', 'both'),
+	liftover = FALSE, saveRaw = FALSE){
 
 	suppressWarnings(dir.create('./results'))
 	annotators <- match.arg(annotators)
@@ -22,7 +23,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 	type <- match.arg(type)
 	switch(annotators,
 		revel = {
-			message('\n=========================\nREVEL annotation\n=========================')
+			cat(crayon::red(crayon::bold('\n=========================\nREVEL annotation\n=========================\n')))
 			vcf_body <- constructREVEL(gns, path, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -32,7 +33,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				na = '')
 		},
 		alphamissense = {
-			message('\n=========================\nAlphaMissense annotation\n=========================')
+			cat(crayon::red(crayon::bold('\n=========================\nAlphaMissense annotation\n=========================\n')))
 			vcf_body <- constructAM(gns, path, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -42,7 +43,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				na = '')
 		},
 		clinvar_sig = {
-			message('\n========================\nClinVar annotation\n========================')
+			cat(crayon::red(crayon::bold('\n========================\nClinVar annotation\n========================\n')))
 			message('ClinVar annotation is currently retrieved from gnomAD')
 			vcf_body <- constructClinVar(gns, path, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_clinvar_sig.vcf'), 
@@ -53,7 +54,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				na = '')
 		},
 		gnomad_af = {
-			message('\n========================\ngnomAD frequencies\n========================')
+			cat(crayon::red(crayon::bold('\n========================\ngnomAD frequencies\n========================\n')))
 			vcf_body <- constructAF(gns, path, databases, type, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_gnomad_af.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -62,8 +63,32 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 		},
+		mutation_taster = {
+			cat(crayon::red(crayon::bold('\n==========================\nMutationTaster predictions\n==========================\n')))
+			vars <- collectVars(gns, databases, path, type, liftover = TRUE)
+			if(nrow(vars) != 0){
+				message('Retrieving predictions\n')
+				progressr::with_progress(vars <- taste(vars))
+				message(nrow(vars), ' variants were successfully annotated.')
+				vcf_body <- data.frame(CHR = vars$CHR, POS = vars$POS, 
+					ID = paste0(gsub(' ', '_', vars$prediction)),
+					REF = vars$REF, ALT = vars$ALT, QUAL = '.',
+					FILTER = 'PASS', INFO = '.', FORMAT = 'GT:GQ:DP:AD', Sample = '.')
+				vcf_body <- vcf_body[which(vcf_body$ID != ''), ]
+				} else {
+					message('Pathogenicity prediction aborted.\nNo variants found.')
+					vcf_body <- data.frame(CHR = character(), POS = character(),
+						REF = character(), ALT = character())
+				}
+			utils::write.table(vcf_header_allele, file = paste0(panelName, '_mutationTaster.vcf'), 
+				sep = '\t', quote = FALSE, col.names = FALSE, 
+				row.names = FALSE)
+			utils::write.table(vcf_body, file =  paste0(panelName, '_mutationTaster.vcf'), 
+				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
+				na = '')
+		},
 		intervar = {
-			message('\n========================\nInterVar annotation\n========================')
+			cat(crayon::red(crayon::bold('\n========================\nInterVar annotation\n========================\n')))
 			vars <- collectVars(gns, databases, path, type, liftover)
 			if(isTRUE(saveRaw)){
 				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
@@ -72,7 +97,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 					quote = FALSE, row.names = FALSE)
 			}
 			if(nrow(vars) != 0){
-				message('\n========================\nPathogenicity prediction\n========================')
+				cat(crayon::red(crayon::bold('\n========================\nPathogenicity prediction\n========================\n')))
 				progressr::with_progress(vars <- annotateInterVar(vars, liftover))
 				vars[is.na(vars)] <- NULL
 				message(length(vars), ' variants were successfully annotated.')
@@ -104,7 +129,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 			}
 		},
 		all = {
-			message('\n=========================\nREVEL annotation\n=========================')
+			cat(crayon::red(crayon::bold('\n=========================\nREVEL annotation\n=========================\n')))
 			vcf_body <- constructREVEL(gns, path, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_revel.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -113,7 +138,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 
-			message('\n=========================\nAlphaMissense annotation\n=========================')
+			cat(crayon::red(crayon::bold('\n=========================\nAlphaMissense annotation\n=========================\n')))
 			vcf_body <- constructAM(gns, path, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_alphaMissense.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -122,7 +147,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 
-			message('\n========================\nClinVar annotation\n========================')
+			cat(crayon::red(crayon::bold('\n========================\nClinVar annotation\n========================\n')))
 			vcf_body <- constructClinVar(gns, path, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_clinvar_sig.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -131,7 +156,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 
-			message('\n========================\ngnomAD frequencies\n========================')
+			cat(crayon::red(crayon::bold('\n========================\ngnomAD frequencies\n========================\n')))
 			vcf_body <- constructAF(gns, path, databases, type, liftover)
 			utils::write.table(vcf_header_allele, file = paste0(panelName, '_gnomad_af.vcf'), 
 				sep = '\t', quote = FALSE, col.names = FALSE, 
@@ -140,7 +165,30 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
 				na = '')
 
-			message('\n========================\nInterVar annotation\n========================')
+			cat(crayon::red(crayon::bold('\n==========================\nMutationTaster predictions\n==========================\n')))
+			vars <- collectVars(gns, databases, path, type, liftover = TRUE)
+			if(nrow(vars) != 0){
+				message('Retrieving predictions\n')
+				progressr::with_progress(vars <- taste(vars))
+				message(nrow(vars), ' variants were successfully annotated.')
+				vcf_body <- data.frame(CHR = vars$CHR, POS = vars$POS, 
+					ID = paste0(gsub(' ', '_', vars$prediction)),
+					REF = vars$REF, ALT = vars$ALT, QUAL = '.',
+					FILTER = 'PASS', INFO = '.', FORMAT = 'GT:GQ:DP:AD', Sample = '.')
+				vcf_body <- vcf_body[which(vcf_body$ID != ''), ]
+				} else {
+					message('Pathogenicity prediction aborted.\nNo variants found.')
+					vcf_body <- data.frame(CHR = character(), POS = character(),
+						REF = character(), ALT = character())
+				}
+			utils::write.table(vcf_header_allele, file = paste0(panelName, '_mutationTaster.vcf'), 
+				sep = '\t', quote = FALSE, col.names = FALSE, 
+				row.names = FALSE)
+			utils::write.table(vcf_body, file =  paste0(panelName, '_mutationTaster.vcf'), 
+				append = TRUE, sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE, 
+				na = '')
+
+			cat(crayon::red(crayon::bold('\n========================\nInterVar annotation\n========================\n')))
 			vars <- collectVars(gns, databases, path, type, liftover)
 			if(isTRUE(saveRaw)){
 				varsOut <- data.frame(vars[,1:2], ID = '.', vars[,3:4], QUAL = '.', FILTER = 'PASS',
@@ -149,7 +197,7 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 					quote = FALSE, row.names = FALSE)
 			}
 			if(nrow(vars) != 0){
-				message('\n========================\nPathogenicity prediction\n========================')
+				cat(crayon::red(crayon::bold('\n========================\nPathogenicity prediction\n========================\n')))
 				progressr::with_progress(vars <- annotateInterVar(vars, liftover))
 				vars[is.na(vars)] <- NULL
 				message(length(vars), ' variants were successfully annotated.')

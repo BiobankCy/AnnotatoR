@@ -81,3 +81,53 @@ lift <- function(vcf, ...){
 	ch <- rtracklayer::import.chain(system.file(package = 'liftOver', 'extdata', 'hg38ToHg19.over.chain'))
 	gr19 <- unlist(rtracklayer::liftOver(gr38, ch))
 }
+
+#' Annotate via Mutation Taster's API.
+#'
+#' Predict variants' pathogenicity using Mutation Taster.
+#'
+#' @param vcf A variant table as the one created by `collectVars`
+#' @return Annotated variants
+#' @export
+taste <- function(vcf){
+	p <- progressr::progressor(steps = nrow(vcf))
+	out <- list()
+	for(i in 1:nrow(vcf)){
+		p(message = sprintf("Adding %g", i))
+		mt <- httr::GET(paste0(
+			'https://www.genecascade.org/MT2021/MT_API102.cgi?variants=', vcf[i, 'CHR'],
+			':', vcf[i, 'POS'], vcf[i, 'REF'], '%3E', vcf[i, 'ALT']
+		))
+
+		# Check status code & ERROR response
+		if(mt$status_code == 414 | grepl('^ERROR', rawToChar(mt$content))){
+			out[[i]] <- as.data.frame(matrix(NA, nrow = 0, ncol = 15))
+			} else {
+			cont <- lapply(strsplit(rawToChar(mt$content), split = '\\n'), strsplit, split = '\\t')[[1]]
+			hd <- cont[[1]]
+			hd[2:5] <- toupper(hd[2:5])
+			if(length(cont) > 1){
+				out[[i]] <- do.call('rbind', lapply(cont[2:length(cont)], function(x){
+					if(length(x) == 14) x <- c(x, '')
+					return(x)
+					}))
+				} else {
+					out[[i]] <- as.data.frame(matrix(NA, nrow = 0, ncol = 15))
+				}
+
+			}
+			colnames(out[[i]]) <- hd
+	}
+	out <- do.call('rbind', out)
+	# Correct chromosome notation
+	out$CHR <- paste0('chr', out$CHR)
+	out <- out %>%
+		dplyr::mutate(
+		  	CHR = dplyr::recode(CHR, 
+				'chr23' = 'chrX',
+				'chr24' = 'chrY'
+		  	)
+		)
+	out <- merge(vcf, out, by = c('CHR', 'POS', 'REF', 'ALT'))
+	return(out)
+}

@@ -53,7 +53,7 @@ constructREVEL <- function(gns, path, liftover){
 	path <- file.path(path, 'revel')
 	suppressWarnings(dir.create(path, recursive = TRUE))
 
-	# Gene coordinates (hg19 for revel 1.3 file names)
+	# Gene coordinates (hg19 for revel 1.3 file names; see publication)
 	map <- map_fetch('EnsDb.Hsapiens.v75', gns, trans = FALSE)
 	map <- split(map, f = map$seqnames)
 
