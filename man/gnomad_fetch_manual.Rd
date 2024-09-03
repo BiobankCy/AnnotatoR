@@ -4,7 +4,7 @@
 \alias{gnomad_fetch_manual}
 \title{Fetch manually downloaded gnomAD variants.}
 \usage{
-gnomad_fetch_manual(map, path, liftover, af = FALSE)
+gnomad_fetch_manual(map, path, liftover, af = FALSE, sig = FALSE)
 }
 \arguments{
 \item{map}{Gene data as in map.}
