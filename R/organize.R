@@ -82,11 +82,25 @@ constructREVEL <- function(gns, path, liftover){
 		# Gather data per gene
 		iii <- paste0('chr', i)
 		for(k in rownames(map[[iii]])){
-			revel <- utils::read.csv(
-				list.files(name, full.names = TRUE)[which(
-					segs$start < map[[iii]][k, 'start'] & 
-					segs$end > map[[iii]][k, 'end'])]
-			)
+			# Control for a gene coordinates spanning over >1 revel files 
+			start <- which(segs$start < map[[iii]][k, 'start'])
+			end <- which(segs$end > map[[iii]][k, 'end'])
+			revel_fls <- intersect(start, end)
+			if(length(revel_fls)) {
+				revel <- utils::read.csv(
+					list.files(name, full.names = TRUE)[revel_fls]
+				)
+				} else {
+					revel <- rbind( 
+						utils::read.csv(list.files(name, full.names = TRUE)[tail(start, 1)]),
+						utils::read.csv(list.files(name, full.names = TRUE)[head(end, 1)])
+					)
+				}
+			# revel <- utils::read.csv(
+			# 	list.files(name, full.names = TRUE)[which(
+			# 		segs$start < map[[iii]][k, 'start'] & 
+			# 		segs$end > map[[iii]][k, 'end'])]
+			# )
 			# Instead of applying a liftover, choose the hg19 revel column
 			tmp <- ifelse(isTRUE(liftover), 'hg19_pos', 'grch38_pos')
 			revel_vcf <- data.frame(CHR = paste0('chr', revel$chr),
