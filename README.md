@@ -28,15 +28,15 @@ for gene variants retrieved through:
 
 ### Arguments
 
-* `gns`         : a set of gene names
-* `annotators`  : defines the annotator source(s) to use (`revel`, `alphamissense`, `clinvar_sig`, `gnomad_af`, `intervar`, 
-    `mutation_taster`, `all`)
-* `databases`   : defines the online, publicly available databases to retrieve variants from (`gnomad_man`, `gnomad_auto`, `clinvar`, `lovd3`, `all`). The argument is taken into consideration when `intervar`, `gnomad_af`, `mutation_taster` or `all` annotators are selected. `gnomad_man` expects manually downloaded gnomAD csv files placed in `gnomad/manual` subdirectory of the directory set in `path` argument (see below).
-* `panelName`   : defines the path and prefix of the output file
-* `path`        : defines the path were database files are stored (default: `./dbs`)
-* `type`        : defines which genomic data types to retrieve from gnomAD (`exome`, `genome` or `both`). It is taken into consideration in parallel with `databases` argument.
-* `liftover`    : defines whether variants should be lifted over from GRCh38 to GRCh37 (default: FALSE)
-* `saveRaw`     : defines whether retrieved variants should be saved without any annotation. Applicable only when `intervar` or `all` annotator is selected.
+* `gns` : a set of gene names
+* `annotators` : defines the annotator source(s) to use (*revel*, *alphamissense*, *clinvar_sig*, *gnomad_af*, *intervar*, 
+    *mutation_taster*, *all*)
+* `databases` : defines the online, publicly available databases to retrieve variants from (*gnomad_man*, *gnomad_auto*, *clinvar*, *lovd3*, *all*). The argument is taken into consideration when *intervar*, *gnomad_af*, *mutation_taster* or *all* annotators are selected. *gnomad_man* expects manually downloaded gnomAD csv files placed in *gnomad/manual* subdirectory of the directory set in *path* argument (see below).
+* `panelName` : defines the path and prefix of the output file
+* `path` : defines the path were database files are stored (default: *./dbs*)
+* `type` : defines which genomic data types to retrieve from gnomAD (*exome*, *genome* or *both*). It is taken into consideration in parallel with *databases* argument.
+* `liftover` : defines whether variants should be lifted over from GRCh38 to GRCh37 (default: FALSE)
+* `saveRaw` : defines whether retrieved variants should be saved without any annotation. Applicable only when *intervar* or *all* annotator is selected.
 
 ### Examples
 
