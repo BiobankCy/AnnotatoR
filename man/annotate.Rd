@@ -17,24 +17,24 @@ annotate(
 )
 }
 \arguments{
-\item{gns}{Gene names character vector.}
+\item{gns}{Gene names (HGNC) character vector.}
 
-\item{annotators}{Annotators to create files for.}
+\item{annotators}{Annotator resources to retrieve data from.}
 
-\item{databases}{Databases to fetch annotation from.}
+\item{databases}{Databases to retrieve variants from.}
 
 \item{panelName}{Path and prefix for output file.}
 
-\item{path}{Where database files will be downloaded.}
+\item{path}{Path to download directory.}
 
-\item{type}{Type of gnomAD data to download. Applicable only for \code{intervar} and \code{all} annotators.}
+\item{type}{Type of gnomAD data to download. Required when `annotators` argument is set to/includes `gnomad_af`, `mutation_taster`, `intervar`, `all`}
 
-\item{liftover}{Should variants be lifted over?}
+\item{liftover}{Should variants be lifted over to hg19? (Default hg38)}
 
-\item{saveRaw}{Save all variants without any annotation. Applicable only for \code{intervar} and \code{all} annotators.}
+\item{saveRaw}{Save all variants without any annotation. Applicable only for `intervar` and `all` annotators.}
 }
 \value{
-IonReporter annotation files.
+VCF-like annotation annotation files compatible with IonReporter.
 }
 \description{
 A wrapper function for downloading and organizing annotation files.

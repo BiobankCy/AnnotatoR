@@ -1,21 +1,17 @@
 Package: AnnotateThat
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+Title: An R package for the creation of general purpose, IonReporter-compatible annotation files.
+Version: 0.1.0
+Authors: Dionysios Fanidis [aut, cre] https://orcid.org/0000-0002-4053-2090
+Description: Given a set of HGNC gene symbols, the package retrieves on demand known variants and respective annotation from publicly available databases/predictors. Although formatted as IonRerorter-compatible files, results can be used for any other purpose.
+License: GPL (>= 3)
 Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
 Imports:
     EnsDb.Hsapiens.v86,
     EnsDb.Hsapiens.v75,
     BSgenome.Hsapiens.UCSC.hg38,
     ensembldb,
     GenomicRanges,
+    HGNChelper,
     httr,
     jsonlite,
     IRanges,

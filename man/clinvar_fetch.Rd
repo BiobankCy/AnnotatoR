@@ -7,14 +7,14 @@
 clinvar_fetch(gns, path, liftover)
 }
 \arguments{
-\item{gns}{Gene names character vector.}
+\item{gns}{Gene names (HGNC) character vector.}
 
-\item{path}{Where data were downloaded}
+\item{path}{Path to download directory.}
 
 \item{liftover}{Should variants be lifted over?}
 }
 \value{
-vcf data.frame
+A VCF-like data.frame with ClinVar variants.
 }
 \description{
 Collect known variants for specific genes from ClinVar

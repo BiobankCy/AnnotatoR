@@ -1,14 +1,14 @@
 `%!in%` <- Negate(`%in%`)
 `%>%` <- dplyr::`%>%`
 
-#' Contruct AlphaMissense annotation file.
+#' Contruct an AlphaMissense annotation file.
 #'
-#' Download and organize AlphaMissense predictions for specific genes.
+#' Download and organize AlphaMissense predictions for genes of interest.
 #'
-#' @param gns Gene names character vector.
-#' @param path Where data were downloaded
+#' @param gns Gene names (HGNC) character vector.
+#' @param path Path to download directory.
 #' @param liftover Should variants be lifted over?
-#' @return vcf data.frame
+#' @return A VCF-like data.frame with AlphaMissense pathogenicity prediction in the 3rd column (`ID`).
 #' @export
 constructAM <- function(gns, path, liftover){
 	path <- file.path(path, 'alphamissense')
@@ -44,10 +44,10 @@ constructAM <- function(gns, path, liftover){
 #'
 #' Download and organize REVEL meta-predictions for specific genes.
 #'
-#' @param gns Gene names character vector.
-#' @param path Where data were downloaded
+#' @param gns Gene names (HGNC) character vector.
+#' @param path Path to download directory.
 #' @param liftover Should variants be lifted over?
-#' @return vcf data.frame
+#' @return A VCF-like data.frame with REVEL deleteriousness prediction score in the 3rd column (`ID`).
 #' @export
 constructREVEL <- function(gns, path, liftover){
 	path <- file.path(path, 'revel')
@@ -112,6 +112,9 @@ constructREVEL <- function(gns, path, liftover){
 				revel_vcf$POS > map[[iii]][k, 'start'] & 
 				revel_vcf$POS < map[[iii]][k, 'end']),]
 		}
+		# Will be set to the user's discretion, otherwise package cannot check if something has already been downloaded.
+		# # Delete revel chromosome files to save up some space
+		# unlink(name, recursive = TRUE)
 	}
 	revel_data <- do.call('rbind', revel_data)
 	rownames(revel_data) <- NULL
@@ -125,10 +128,10 @@ constructREVEL <- function(gns, path, liftover){
 #' Download and organize ClinVar significance classification with
 #' review status level for specific genes.
 #'
-#' @param gns Gene names character vector.
-#' @param path Where data were downloaded
+#' @param gns Gene names (HGNC) character vector.
+#' @param path Path to download directory.
 #' @param liftover Should variants be lifted over?
-#' @return vcf data.frame
+#' @return A VCF-like data.frame with ClinVar germline classification values and number of review stars in the 3rd column (`ID`).
 #' @export
 constructClinVar_deprecated <- function(gns, path, liftover){
 	path <- file.path(path, 'clinvar')
@@ -196,27 +199,54 @@ constructClinVar_deprecated <- function(gns, path, liftover){
 #' A wrapper function to retrieve ClinVar variant significance from gnomAD.
 #' Manually downloaded gnomAD files are required.
 #'
-#' @param gns Gene names character vector.
-#' @param path Where data were downloaded
+#' @param gns Gene names (HGNC) character vector.
+#' @param path Path to download directory.
 #' @param liftover Should variants be lifted over?
-#' @return vcf data.frame
+#' @return A VCF-like data.frame with ClinVar germline classification values in the 3rd column (`ID`).
 #' @export
 constructClinVar <- function(gns, path, liftover){
 
 	# Get gene data
 	message('Preparing data')
 	map <- map_fetch('EnsDb.Hsapiens.v86', gns, trans = FALSE)
-	map <- split(map, f = map$seqnames)
+	# Check for gene names not found in EnsDb.Hsapiens.v86
+	notfound <- setdiff(gns, map$gene_name)
+	if(length(notfound) > 0) newname <- HGNChelper::checkGeneSymbols(notfound) 
+	# If there are gene names not found in EnsDb.Hsapiens.v86
+	if(exists('newname')){
+		# Locally replace the old with the new gene names
+		gnsnew <- gns
+		for(i in 1:nrow(newname)) gnsnew <- stringr::str_replace_all(gnsnew, newname[i, 'x'], newname[i, 'Suggested.Symbol'])
+		# Get gene data for those new genes
+		map2 <- map_fetch('EnsDb.Hsapiens.v86', newname$Suggested.Symbol, trans = FALSE)
+		map <- unique(rbind(map, map2))
+		rm(map2)
+	}
+	# map <- split(map, f = map$seqnames)
+	gnsnew <- gns
 
 	pathTmp <- file.path(path, 'gnomad/manual')
 	if(!dir.exists(pathTmp)){
 		stop('gnomAD files are missing. Manually downloaded gnomAD files are required.')
 	} else if (dir.exists(pathTmp)) {
-		gns_tmp <- do.call('rbind', map)$gene_id
-		files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
+		# map_tmp <- do.call('rbind', map)
+		# rownames(map_tmp) <- map_tmp$gene_id
+		# gns_tmp <- map_tmp$gene_id
+		# files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
+			# full.names = TRUE)
+		# Which genes were manually downloaded from gnomad
+		files <- list.files(pathTmp, pattern = paste('gnomAD_v4', map$gene_id, sep = '|'), 
 			full.names = TRUE)
-		if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
-			out <- gnomad_fetch_manual(map, path, liftover, sig = TRUE)
+		gnsinfiles <- unlist(lapply(strsplit(files, '_'), function(x) x[3]))
+		# Update map with the already downloaded genes
+		mapnew <- map[which(map$gene_id %in% gnsinfiles), ]
+
+		# Check updated map for all genes requested by user (use gnsnew to be in accordance
+		# with the gnomad ENSGids)
+		# if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
+		if(length(setdiff(gnsnew, mapnew$gene_name)) == 0){
+			out <- gnomad_fetch_manual(split(mapnew, f = mapnew$seqnames), 
+				path, liftover, sig = TRUE)
 		} else {
 			stop('gnomAD files are missing. Manually downloaded gnomAD files are required.')
 		}
@@ -229,19 +259,35 @@ constructClinVar <- function(gns, path, liftover){
 #' Retrieve gnomAD allele frequencies.
 #'
 #' A wrapper function to retrieve population allele frequencies as recorded in gnomAD.
+#' `gnomad_man` searches for manually downloaded gnomAD csv files in `gnomad/manual`
+#' inside the `dbs` directory. If not found, it downloads (upon approval) gnomAD raw files instead.
 #' 
-#' @param gns Gene names character vector.
-#' @param path Where data were downloaded
-#' @param type Type of gnomAD data to download.
+#' @param gns Gene names (HGNC) character vector.
+#' @param path Path to download directory.
+#' @param type Type of gnomAD data to download. Used when `gnomad_auto` database is selected.
 #' @param liftover Should variants be lifted over?
-#' @return vcf data.frame
+#' @return A VCF-like data.frame with gnomAD allele frequency in the 3rd column (`ID`).
 #' @export
 constructAF <- function(gns, path, databases = c('gnomad_man', 'gnomad_auto'), type = c('exomes', 'genomes', 'both'), liftover){
 
 	# Get gene data
 	message('Preparing data')
 	map <- map_fetch('EnsDb.Hsapiens.v86', gns, trans = FALSE)
-	map <- split(map, f = map$seqnames)
+	# Check for gene names not found in EnsDb.Hsapiens.v86
+	notfound <- setdiff(gns, map$gene_name)
+	if(length(notfound) > 0) newname <- HGNChelper::checkGeneSymbols(notfound) 
+	# If there are gene names not found in EnsDb.Hsapiens.v86
+	if(exists('newname')){
+		# Locally replace the old with the new gene names
+		gnsnew <- gns
+		for(i in 1:nrow(newname)) gnsnew <- stringr::str_replace_all(gnsnew, newname[i, 'x'], newname[i, 'Suggested.Symbol'])
+		# Get gene data for those new genes
+		map2 <- map_fetch('EnsDb.Hsapiens.v86', newname$Suggested.Symbol, trans = FALSE)
+		map <- unique(rbind(map, map2))
+		rm(map2)
+	}
+	# map <- split(map, f = map$seqnames)
+	gnsnew <- gns
 
 	if(databases %in% c('clinvar', 'lovd3', 'all')) databases <- 'gnomad_man'
 
@@ -252,16 +298,26 @@ constructAF <- function(gns, path, databases = c('gnomad_man', 'gnomad_auto'), t
 			pathTmp <- file.path(path, 'gnomad/manual')
 			if(!dir.exists(pathTmp)){
 				message('gnomAD files are missing. Proceed to download')
-				out <- gnomad_fetch_auto(map, type, path, liftover, af = TRUE)
+				out <- gnomad_fetch_auto(split(map, f = map$seqnames), type, path, liftover, af = TRUE)
 			} else if (dir.exists(pathTmp)) {
-				gns_tmp <- do.call('rbind', map)$gene_id
-				files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
+				# gns_tmp <- do.call('rbind', map)$gene_id
+				# files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
+				# 	full.names = TRUE)
+				# Which genes were manually downloaded from gnomad
+				files <- list.files(pathTmp, pattern = paste('gnomAD_v4', map$gene_id, sep = '|'), 
 					full.names = TRUE)
-				if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
-					out <- gnomad_fetch_manual(map, path, liftover, af = TRUE)
+				gnsinfiles <- unlist(lapply(strsplit(files, '_'), function(x) x[3]))
+				# Update map with the already downloaded genes
+				mapnew <- map[which(map$gene_id %in% gnsinfiles), ]
+
+				# Check updated map for all genes requested by user (use gnsnew to be in accordance
+				# with the gnomad ENSGids)
+				# if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
+				if(length(setdiff(gnsnew, mapnew$gene_name)) == 0){				
+					out <- gnomad_fetch_manual(split(mapnew, f = mapnew$seqnames), path, liftover, af = TRUE)
 				} else {
 					message('gnomAD files are missing. Proceed to download')
-					out <- gnomad_fetch_auto(map, type, path, liftover, af = TRUE)
+					out <- gnomad_fetch_auto(split(mapnew, f = mapnew$seqnames), type, path, liftover, af = TRUE)
 				}
 			}
 		},
@@ -278,12 +334,12 @@ constructAF <- function(gns, path, databases = c('gnomad_man', 'gnomad_auto'), t
 #' A wrapper function to collect known variants for specific genes
 #' from public resources (gnomAD, ClinVar, LOVD3).
 #' 
-#' @param gns Gene names character vector.
+#' @param gns Gene names (HGNC) character vector.
 #' @param databases Databases to retrieve variants from. 
-#' @param path Where data were downloaded
-#' @param type Type of gnomAD data to download.
+#' @param path Path to download directory.
+#' @param type Type of gnomAD data to download. Used when `gnomad_auto` database is selected.
 #' @param liftover Should variants be lifted over?
-#' @return vcf data.frame
+#' @return A VCF-like data.frame with gene variants from the selected databases.
 #' @export
 collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar', 'lovd3', 'all'), 
 	path, type = c('exomes', 'genomes', 'both'), liftover){
@@ -291,16 +347,30 @@ collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar
 	# Get gene data
 	message('Preparing data')
 	map <- map_fetch('EnsDb.Hsapiens.v86', gns, trans = FALSE)
-	map <- split(map, f = map$seqnames)
+	# Check for gene names not found in EnsDb.Hsapiens.v86
+	notfound <- setdiff(gns, map$gene_name)
+	if(length(notfound) > 0) newname <- HGNChelper::checkGeneSymbols(notfound) 
+	# If there are gene names not found in EnsDb.Hsapiens.v86
+	if(exists('newname')){
+		# Locally replace the old with the new gene names
+		gnsnew <- gns
+		for(i in 1:nrow(newname)) gnsnew <- stringr::str_replace_all(gnsnew, newname[i, 'x'], newname[i, 'Suggested.Symbol'])
+		# Get gene data for those new genes
+		map2 <- map_fetch('EnsDb.Hsapiens.v86', newname$Suggested.Symbol, trans = FALSE)
+		map <- unique(rbind(map, map2))
+		rm(map2)
+	}
+	# map <- split(map, f = map$seqnames)
+	gnsnew <- gns
 
 	databases <- match.arg(databases)
 	type <- match.arg(type)
 	switch(databases, 
 		gnomad_man = {
-			out <- gnomad_fetch_manual(map, path, liftover)
+			out <- gnomad_fetch_manual(split(map, f = map$seqnames), path, liftover)
 		},
 		gnomad_auto = {
-			out <- gnomad_fetch_auto(map, type, path, liftover)
+			out <- gnomad_fetch_auto(split(map, f = map$seqnames), type, path, liftover)
 		},
 		clinvar = {
 			progressr::with_progress(out <- clinvar_fetch(gns, path, liftover))
@@ -312,16 +382,26 @@ collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar
 			pathTmp <- file.path(path, 'gnomad/manual')
 			if(!dir.exists(pathTmp)){
 				message('gnomAD files are missing. Proceed to download')
-				a <- gnomad_fetch_auto(map, type, path, liftover)
+				a <- gnomad_fetch_auto(split(map, f = map$seqnames), type, path, liftover)
 			} else if (dir.exists(pathTmp)) {
-				gns_tmp <- do.call('rbind', map)$gene_id
-				files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
+				# gns_tmp <- do.call('rbind', map)$gene_id
+				# files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '|'), 
+				# 	full.names = TRUE)
+				# Which genes were manually downloaded from gnomad
+				files <- list.files(pathTmp, pattern = paste('gnomAD_v4', map$gene_id, sep = '|'), 
 					full.names = TRUE)
-				if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
-					a <- gnomad_fetch_manual(map, path, liftover)
+				gnsinfiles <- unlist(lapply(strsplit(files, '_'), function(x) x[3]))
+				# Update map with the already downloaded genes
+				mapnew <- map[which(map$gene_id %in% gnsinfiles), ]
+
+				# Check updated map for all genes requested by user (use gnsnew to be in accordance
+				# with the gnomad ENSGids)
+				# if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
+				if(length(setdiff(gnsnew, mapnew$gene_name)) == 0){
+					a <- gnomad_fetch_manual(split(mapnew, f = mapnew$seqnames), path, liftover)
 				} else {
 					message('gnomAD files are missing. Proceed to download')
-					a <- gnomad_fetch_auto(map, type, path, liftover)
+					a <- gnomad_fetch_auto(split(mapnew, f = mapnew$seqnames), type, path, liftover)
 				}
 			}
 			b <- clinvar_fetch(gns, path, liftover)
@@ -337,11 +417,11 @@ collectVars <- function(gns, databases = c('gnomad_man', 'gnomad_auto', 'clinvar
 #'
 #' Collect known variants for specific genes downloaded manually from gnomAD
 #' 
-#' @param map Gene data as in map. 
-#' @param path Where data were downloaded
+#' @param map Gene data data.frame as returned from `map_fetch`. 
+#' @param path Path to download directory.
 #' @param liftover Should variants be lifted over?
 #' @param af Maintain allele frequencies?
-#' @return vcf data.frame
+#' @return A VCF-like data.frame with gnomAD allele frequencies (af = TRUE) or ClinVar significance values (sig = TRUE) in the 3rd column (`ID`).
 gnomad_fetch_manual <- function(map, path, liftover, af = FALSE, sig = FALSE){
 	if(isTRUE(af) & isTRUE(sig)) stop('Only one of `af`, `sig` should be TRUE')
 	pathTmp <- file.path(path, 'gnomad/manual')
@@ -349,7 +429,11 @@ gnomad_fetch_manual <- function(map, path, liftover, af = FALSE, sig = FALSE){
 		stop('gnomAD files are missing')
 		} else {
 		message('Fetching gnomad variants')
-		gns_tmp <- do.call('rbind', map)$gene_id
+		if(nrow(map) > 1) {
+			gns_tmp <- do.call('rbind', map)$gene_id
+			} else {
+				gns_tmp <- map$gene_id
+			}
 		files <- list.files(pathTmp, pattern = paste('gnomAD_v4', gns_tmp, sep = '.*', collapse = '|'), 
 			full.names = TRUE)
 		if(length(grep(paste(gns_tmp, collapse = '|'), files)) == length(gns_tmp)){
@@ -375,7 +459,8 @@ gnomad_fetch_manual <- function(map, path, liftover, af = FALSE, sig = FALSE){
 						)  
 					)
 				} else {
-					gnomad_vcf <- gnomad_vcf[,c('CHR', 'POS', 'ClinVar.Clinical.Significance', 'REF', 'ALT')]
+					# ClinVar.Clinical.Significance was changed to ClinVar.Germline.Classification by gnomad
+					gnomad_vcf <- gnomad_vcf[,c('CHR', 'POS', 'ClinVar.Germline.Classification', 'REF', 'ALT')]
 					colnames(gnomad_vcf)[3] <- 'ID'
 					gnomad_vcf <- na.omit(gnomad_vcf[which(gnomad_vcf$ID %!in% c('', 'not provided')),])
 					gnomad_vcf <- gnomad_vcf %>%
@@ -399,9 +484,15 @@ gnomad_fetch_manual <- function(map, path, liftover, af = FALSE, sig = FALSE){
 						  	)
 						)
 					# To cover other possible entries
-					gnomad_vcf$ID <- gsub(' *', '_', gnomad_vcf$ID)
+					gnomad_vcf$ID <- gsub(' ', '_', gnomad_vcf$ID)
 				}
-			if(isTRUE(liftover)) gnomad_vcf$POS <- as.data.frame(lift(gnomad_vcf))$start
+			if(isTRUE(liftover)) {
+				# Defend against rtracklayer::liftOver returning fewer variants
+				gnomad_vcf$index <- as.character(1:nrow(gnomad_vcf))
+				lift_tmp <- as.data.frame(lift(gnomad_vcf))
+				gnomad_vcf <- gnomad_vcf[which(gnomad_vcf$index %in% lift_tmp$index), ]
+				gnomad_vcf$POS <- lift_tmp$start[which(lift_tmp$index %in% gnomad_vcf$index)]
+			}
 			return(gnomad_vcf)
 		} else {
 			stop('gnomAD files are missing')
@@ -411,14 +502,14 @@ gnomad_fetch_manual <- function(map, path, liftover, af = FALSE, sig = FALSE){
 
 #' Fetch gnomAD variants.
 #'
-#' Collect known variants for specific genes from gnomAD
+#' Collect known variants for specific genes from gnomAD.
 #' 
 #' @param map Gene data as in map. 
-#' @param type Type of gnomAD data to download.
-#' @param path Where data were downloaded
+#' @param type Type of gnomAD data to download. Used when `gnomad_auto` database is selected.
+#' @param path Path to download directory.
 #' @param liftover Should variants be lifted over?
 #' @param af Maintain allele frequencies?
-#' @return vcf data.frame
+#' @return A VCF-like data.frame with gnomAD variants.
 gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path, liftover, af = FALSE){
 	pathTmp <- file.path(path, 'gnomad')
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
@@ -531,10 +622,10 @@ gnomad_fetch_auto <- function(map, type = c('exomes', 'genomes', 'both'), path, 
 #'
 #' Collect known variants for specific genes from ClinVar
 #' 
-#' @param gns Gene names character vector.
-#' @param path Where data were downloaded
+#' @param gns Gene names (HGNC) character vector.
+#' @param path Path to download directory.
 #' @param liftover Should variants be lifted over?
-#' @return vcf data.frame
+#' @return A VCF-like data.frame with ClinVar variants.
 clinvar_fetch <- function(gns, path, liftover){
 	pathTmp <- file.path(path, 'clinvar')
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
@@ -563,19 +654,26 @@ clinvar_fetch <- function(gns, path, liftover){
 	# clinvar_vcf <- read.table(file.path(pathTmp, 'clinvar_tmp.vcf'))
 	# colnames(clinvar_vcf) <- c('CHR', 'POS', 'REF', 'ALT', 'GENEINFO')
 	# clinvar_vcf <- clinvar_vcf[grep(paste(gns, collapse = '|'), clinvar_vcf$GENEINFO), 1:4]
-	if(isTRUE(liftover)) clinvar_vcf$POS <- as.data.frame(lift(clinvar_vcf))$start
+
+	if(isTRUE(liftover)){
+		# Defend against rtracklayer::liftOver returning fewer variants
+		clinvar_vcf$index <- as.character(1:nrow(clinvar_vcf))
+		lift_tmp <- as.data.frame(lift(clinvar_vcf))
+		clinvar_vcf <- clinvar_vcf[which(clinvar_vcf$index %in% lift_tmp$index), ]
+		clinvar_vcf$POS <- lift_tmp$start[which(lift_tmp$index %in% clinvar_vcf$index)]
+	}
 	unlink(file.path(pathTmp, 'clinvar_tmp.vcf'))
 	return(clinvar_vcf)
 }
 
-#' Fetch lovd3 variants.
+#' Fetch LOVD3 variants.
 #'
-#' Collect known variants for specific genes from lovd3
+#' Collect known variants for specific genes from LOVD3
 #' 
-#' @param gns Gene names character vector.
-#' @param path Where data were downloaded
+#' @param gns Gene names (HGNC) character vector.
+#' @param path Path to download directory.
 #' @param liftover Should variants be lifted over?
-#' @return vcf data.frame
+#' @return A VCF-like data.frame with LOVD3 variants.
 lovd3_fetch <- function(gns, path, liftover){
 	pathTmp <- file.path(path, 'lovd3')
 	suppressWarnings(dir.create(pathTmp, recursive = TRUE))
@@ -819,7 +917,14 @@ lovd3_fetch <- function(gns, path, liftover){
 			lovd3_vcf <- data.frame(CHR = character(), POS = character(),
 				REF = character(), ALT = character())
 		}
-	if(isTRUE(liftover)) lovd3_vcf$POS <- as.data.frame(lift(lovd3_vcf))$start
+
+	if(isTRUE(liftover)){
+		# Defend against rtracklayer::liftOver returning fewer variants
+		lovd3_vcf$index <- as.character(1:nrow(lovd3_vcf))
+		lift_tmp <- as.data.frame(lift(lovd3_vcf))
+		lovd3_vcf <- lovd3_vcf[which(lovd3_vcf$index %in% lift_tmp$index), ]
+		lovd3_vcf$POS <- lift_tmp$start[which(lift_tmp$index %in% lovd3_vcf$index)]
+	}
 	unlink(file.path(pathTmp, '*'))
 	return(lovd3_vcf)
 }

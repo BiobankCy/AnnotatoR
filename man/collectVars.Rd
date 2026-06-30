@@ -13,18 +13,18 @@ collectVars(
 )
 }
 \arguments{
-\item{gns}{Gene names character vector.}
+\item{gns}{Gene names (HGNC) character vector.}
 
 \item{databases}{Databases to retrieve variants from.}
 
-\item{path}{Where data were downloaded}
+\item{path}{Path to download directory.}
 
-\item{type}{Type of gnomAD data to download.}
+\item{type}{Type of gnomAD data to download. Used when `gnomad_auto` database is selected.}
 
 \item{liftover}{Should variants be lifted over?}
 }
 \value{
-vcf data.frame
+A VCF-like data.frame with gene variants from the selected databases.
 }
 \description{
 A wrapper function to collect known variants for specific genes

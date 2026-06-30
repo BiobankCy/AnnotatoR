@@ -15,17 +15,17 @@ gnomad_fetch_auto(
 \arguments{
 \item{map}{Gene data as in map.}
 
-\item{type}{Type of gnomAD data to download.}
+\item{type}{Type of gnomAD data to download. Used when `gnomad_auto` database is selected.}
 
-\item{path}{Where data were downloaded}
+\item{path}{Path to download directory.}
 
 \item{liftover}{Should variants be lifted over?}
 
 \item{af}{Maintain allele frequencies?}
 }
 \value{
-vcf data.frame
+A VCF-like data.frame with gnomAD variants.
 }
 \description{
-Collect known variants for specific genes from gnomAD
+Collect known variants for specific genes from gnomAD.
 }

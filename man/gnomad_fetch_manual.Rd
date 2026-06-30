@@ -7,16 +7,16 @@
 gnomad_fetch_manual(map, path, liftover, af = FALSE, sig = FALSE)
 }
 \arguments{
-\item{map}{Gene data as in map.}
+\item{map}{Gene data data.frame as returned from `map_fetch`.}
 
-\item{path}{Where data were downloaded}
+\item{path}{Path to download directory.}
 
 \item{liftover}{Should variants be lifted over?}
 
 \item{af}{Maintain allele frequencies?}
 }
 \value{
-vcf data.frame
+A VCF-like data.frame with gnomAD allele frequencies (af = TRUE) or ClinVar significance values (sig = TRUE) in the 3rd column (`ID`).
 }
 \description{
 Collect known variants for specific genes downloaded manually from gnomAD

@@ -9,12 +9,12 @@ map_fetch(ensdb, gns, trans = FALSE)
 \arguments{
 \item{ensdb}{An EnsDb package.}
 
-\item{gns}{Gene names character vector.}
+\item{gns}{Gene names (HGNC) character vector.}
 
-\item{trans}{Should return transcript data?}
+\item{trans}{Should transcript level data be returned?}
 }
 \value{
-Annotated genes
+A data frame with genes (default) or ensembl transcripts as rows and Ensembl annotation as columns.
 }
 \description{
 Annotate genes using Ensembl data

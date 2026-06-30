@@ -7,14 +7,14 @@
 constructClinVar_deprecated(gns, path, liftover)
 }
 \arguments{
-\item{gns}{Gene names character vector.}
+\item{gns}{Gene names (HGNC) character vector.}
 
-\item{path}{Where data were downloaded}
+\item{path}{Path to download directory.}
 
 \item{liftover}{Should variants be lifted over?}
 }
 \value{
-vcf data.frame
+A VCF-like data.frame with ClinVar germline classification values and number of review stars in the 3rd column (`ID`).
 }
 \description{
 Download and organize ClinVar significance classification with

@@ -2,16 +2,18 @@
 % Please edit documentation in R/utils.R
 \name{lift}
 \alias{lift}
-\title{LiftOver hg38 to hg19}
+\title{LiftOver hg38 to hg19 genomic coordinates using rtracklayer functionalities}
 \usage{
 lift(vcf, ...)
 }
 \arguments{
 \item{vcf}{A vcf dataframe with CHR and POS columns}
+
+\item{...}{Arguments for methods}
 }
 \value{
-Lifted over positions
+A GRanges object of lifted over genomic coordinates
 }
 \description{
-LiftOver hg38 to hg19
+LiftOver hg38 to hg19 genomic coordinates using rtracklayer functionalities
 }

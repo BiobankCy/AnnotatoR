@@ -2,20 +2,20 @@
 % Please edit documentation in R/organize.R
 \name{constructAM}
 \alias{constructAM}
-\title{Contruct AlphaMissense annotation file.}
+\title{Contruct an AlphaMissense annotation file.}
 \usage{
 constructAM(gns, path, liftover)
 }
 \arguments{
-\item{gns}{Gene names character vector.}
+\item{gns}{Gene names (HGNC) character vector.}
 
-\item{path}{Where data were downloaded}
+\item{path}{Path to download directory.}
 
 \item{liftover}{Should variants be lifted over?}
 }
 \value{
-vcf data.frame
+A VCF-like data.frame with AlphaMissense pathogenicity prediction in the 3rd column (`ID`).
 }
 \description{
-Download and organize AlphaMissense predictions for specific genes.
+Download and organize AlphaMissense predictions for genes of interest.
 }

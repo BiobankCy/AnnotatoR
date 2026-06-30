@@ -7,12 +7,12 @@
 annotateInterVar(vcf, liftover)
 }
 \arguments{
-\item{vcf}{A variant table as the one created by \code{collectVars}}
+\item{vcf}{A variant table as the one created by `collectVars`}
 
 \item{liftover}{Were variants lifted over?}
 }
 \value{
-Annotated variants
+A nested list with InterVar's ACMG and other annotation pieces per variant.
 }
 \description{
 Predict variants' pathogenicity according to

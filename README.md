@@ -1,48 +1,99 @@
 # AnnotateThat
 
-An R package designed to create IonReporter custom annotation files for specified gene panels.
-
-Supported annotation sources:
-- gnomAD
-- ClinVar
-- InterVar 
-- AlphaMissense
-- MutationTaster
-- Revel
+An R package designed to create general purpose IonReporter-compatible annotation files starting from a set of gene names.
 
 ## Installation from GitHub
 
-Use with caution as the latest version may be unstable, although typical Bioconductor checks are executed before each push.
-
 ```r
-if (!requireNamespace('devtools',quietly=TRUE))
-    install.packages('devtools')
+if (!requireNamespace('pak',quietly=TRUE))
+    install.packages('pak')
 
-library(devtools)
-install_github('BiobankCy/AnnotateThat')
+pak::pkg_install('github::BiobankCy/AnnotateThat')
 ```
 
 ## Basic use
 
+`annotate()` is the main workhorse of the package. Through this wrapper, the user can provide a set of gene symbols to download annotation from:
+* REVEL
+* AlphaMissense
+* ClinVar
+* gnomAD
+* InterVar
+* MutationTaster
+for gene variants retrieved through:
+* gnomAD
+* ClinVar
+* LOVD3 
+
+### Arguments
+
+* `gns` : a set of gene names
+* `annotators` : defines the annotator source(s) to use (`revel`, `alphamissense`, `clinvar_sig`, `gnomad_af`, `intervar`, 
+    `mutation_taster`, `all`)
+* `databases` : defines the online, publicly available databases to retrieve variants from (`gnomad_man`, `gnomad_auto`, `clinvar`, `lovd3`, `all`). The argument is taken into consideration when `intervar`, `gnomad_af`, `mutation_taster` or `all` annotators are selected. `gnomad_man` expects manually downloaded gnomAD csv files placed in `gnomad/manual` subdirectory of the directory set in `path` argument (see below).
+* `panelName` : defines the path and prefix of the output file
+* `path` : defines the path were database files are stored (default: `./dbs`)
+* `type` : defines which genomic data types to retrieve from gnomAD (`exome`, `genome` or `both`). It is taken into consideration in parallel with `databases` argument.
+* `liftover` : defines whether variants should be lifted over from GRCh38 to GRCh37 (default: FALSE)
+* `saveRaw` : defines whether retrieved variants should be saved without any annotation. Applicable only when `intervar` or `all` annotator is selected.
+
+### Examples
+
+The basic input is a set of genes
 ```r
-library(AnnotateThat)
-gns <- c('SRY', 'AMELY') # a vector of genes
-annotate(gns, annotators = 'revel') # create a custom REVEL vcf file 
-annotate(gns, annotators = 'alphamissense') # create a custom AlphaMissense vcf file 
-annotate(gns, annotators = 'intervar', databases = 'all', type = 'both') # create a custom InterVar prediction vcf file 
-annotate(gns, annotators = 'gnomad_af', databases = 'gnomad_auto', type = 'genome') # create a custom gnomAD allele frequencies (AF) vcf file auto-downloaded from gnomAD genome files 
-annotate(gns, annotators = 'mutation_taster', databases = 'all', type = 'both') # create a custom MutationTaster predictions vcf file 
-annotate(gns, annotators = 'all', databases = 'all', type = 'both') # create all the above custom vcf files
+gns <- c('SRY', 'AMELY')
 ```
 
-Argument `databases` defines the online variant sources used to collect genetic variations for the gene vector provided. It is taken into consideration when `intervar`, `gnomad_af`, `mutation_taster` or `all` annotators are selected.
+* Retrieve REVEL predictions for all variants in `gns` as listed in AlphaMissense pre-computed file
+```r
+annotate(gns, annotators = 'revel')
+```
 
-Argument `type` defines whether `exome`, `genome` or `both` genomics data types should be retrieved from gnomAD. It is taken into consideration in parallel with `databases` argument.
+* Retrieve AlphaMissense predictions for all variants in `gns` as listed in AlphaMissense pre-computed file
+```r
+annotate(gns, annotators = 'alphamissense') # create a custom AlphaMissense vcf file 
+```
+
+* Retrieve InterVar-calculated ACMG predictions for all variants in `gns` as retrieved from `all` databases
+```r
+annotate(gns, annotators = 'intervar', databases = 'all', type = 'both') # create a custom InterVar prediction vcf file 
+```
+
+* Retrieve InterVar-calculated ACMG predictions for all variants in `gns` as retrieved from `all` databases
+```r
+annotate(gns, annotators = 'intervar', databases = 'all', type = 'both') # create a custom InterVar prediction vcf file 
+```
+
+* Retrieve gnomAD allele frequencies for all variants in `gns` as retrieved from `gnomad` database
+```r
+annotate(gns, annotators = 'gnomad_af', databases = 'gnomad_auto', type = 'genome')
+```
+
+* Retrieve gnomAD allele frequencies for all variants in `gns` as retrieved from manually fetched gnomAD csv files stored in `dbs/gnomad/manual`
+```r
+annotate(gns, annotators = 'gnomad_af', databases = 'gnomad_man')
+```
+
+* Retrieve MutationTaster2021 (GRCh37) or MutationTaster2025 (GRCh38) allele frequencies for all variants in `gns` as retrieved from `all` databases. `both` exome and genome based gnomAD files are used.
+```r
+annotate(gns, annotators = 'mutation_taster', databases = 'all', type = 'both')
+```
+
+* Retrieve annotation from all supported annotators and databases. 
+```r
+annotate(gns, annotators = 'all', databases = 'all', type = 'both')
+```
+
+## Required storage space
+
+AnnotateThat can use **extensive disk space**, depending on its use. For this reason, user is asked **each time** a file is about to be downloaded.
+
+### gnomad_man vs gnomad_auto
+
+Whenever gnomAD-related annotation is required, e.g. to retrieve allele frequencies or ClinVar significance, data can be retrieved from either gnomAD download website (`gnomad_auto` databases option), or from manually downloaded csv files placed in `gnomad/manual` subdirectory of the `path` directory (`gnomad_man` databases option). The former option requires significant empty space on the disk and should be avoided, when possible. For small gene sets, the latter option is more viable and suggested. By default, the package searches for manually downloaded files and if not present asks to download gnomAD chromosome files instead.
+
+For more details regarding gnomAD file size please refer to the respective [download page](https://gnomad.broadinstitute.org/downloads).
 
 ## Reference genome version
 
 AnnotateThat annotation is by default built around **GRCh38**. For **GRCh37** variants, set `liftover = TRUE`.
-
-## System requirements
-
-Enough storage space should be available for downloading big gnomAD vcf files. For more details regarding file size please refer to respective [download page](https://gnomad.broadinstitute.org/downloads).

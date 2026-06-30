@@ -2,20 +2,20 @@
 % Please edit documentation in R/organize.R
 \name{lovd3_fetch}
 \alias{lovd3_fetch}
-\title{Fetch lovd3 variants.}
+\title{Fetch LOVD3 variants.}
 \usage{
 lovd3_fetch(gns, path, liftover)
 }
 \arguments{
-\item{gns}{Gene names character vector.}
+\item{gns}{Gene names (HGNC) character vector.}
 
-\item{path}{Where data were downloaded}
+\item{path}{Path to download directory.}
 
 \item{liftover}{Should variants be lifted over?}
 }
 \value{
-vcf data.frame
+A VCF-like data.frame with LOVD3 variants.
 }
 \description{
-Collect known variants for specific genes from lovd3
+Collect known variants for specific genes from LOVD3
 }

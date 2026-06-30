@@ -2,16 +2,18 @@
 % Please edit documentation in R/utils.R
 \name{taste}
 \alias{taste}
-\title{Annotate via Mutation Taster's API.}
+\title{Annotate via MutationTaster's API.}
 \usage{
-taste(vcf)
+taste(vcf, liftover)
 }
 \arguments{
-\item{vcf}{A variant table as the one created by \code{collectVars}}
+\item{vcf}{A variant table as the one created by `collectVars`.}
+
+\item{liftover}{Whether variants have been lifted over (boolean).}
 }
 \value{
-Annotated variants
+Annotated variants with MutationTaster2021 and MutationTaster2025 predictions for GRCh37 (liftover = TRUE) and GRCh38 (liftover = FALSE) variants, respectively.
 }
 \description{
-Predict variants' pathogenicity using Mutation Taster.
+Retrieve variants' pathogenicity predictions from MutationTaster.
 }

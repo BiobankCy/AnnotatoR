@@ -16,7 +16,7 @@ process_json <- function(j) {tryCatch({
 #'
 #' @param vcf A variant table as the one created by `collectVars`
 #' @param liftover Were variants lifted over?
-#' @return Annotated variants
+#' @return A nested list with InterVar's ACMG and other annotation pieces per variant. 
 #' @export
 annotateInterVar <- function(vcf, liftover){
 	p <- progressr::progressor(steps = nrow(vcf))
@@ -44,9 +44,9 @@ annotateInterVar <- function(vcf, liftover){
 #' Annotate genes using Ensembl data
 #'
 #' @param ensdb An EnsDb package.
-#' @param gns Gene names character vector.
-#' @param trans Should return transcript data?
-#' @return Annotated genes
+#' @param gns Gene names (HGNC) character vector.
+#' @param trans Should transcript level data be returned?
+#' @return A data frame with genes (default) or ensembl transcripts as rows and Ensembl annotation as columns.
 #' @export
 map_fetch <- function(ensdb, gns, trans = FALSE){
 	if(isTRUE(trans)){
@@ -71,33 +71,37 @@ map_fetch <- function(ensdb, gns, trans = FALSE){
 	return(map)
 }
 
-#' LiftOver hg38 to hg19
+#' LiftOver hg38 to hg19 genomic coordinates using rtracklayer functionalities
 #'
 #' @param vcf A vcf dataframe with CHR and POS columns
-#'
-#' @return Lifted over positions
+#' @param ... Arguments for methods
+#' @return A GRanges object of lifted over genomic coordinates
 lift <- function(vcf, ...){
-	gr38 <- GenomicRanges::GRanges(paste(vcf$CHR, vcf$POS, sep = ':'))
+	if('index' %in% names(vcf)){ # maybe redundant
+		gr38 <- GenomicRanges::GRanges(paste(vcf$CHR, vcf$POS, sep = ':'), index = vcf$index)
+	} else {
+		gr38 <- GenomicRanges::GRanges(paste(vcf$CHR, vcf$POS, sep = ':'))
+	}
 	ch <- rtracklayer::import.chain(system.file(package = 'liftOver', 'extdata', 'hg38ToHg19.over.chain'))
 	gr19 <- unlist(rtracklayer::liftOver(gr38, ch))
 }
 
-#' Annotate via Mutation Taster's API.
+#' Annotate via MutationTaster's API.
 #'
-#' Predict variants' pathogenicity using Mutation Taster.
+#' Retrieve variants' pathogenicity predictions from MutationTaster.
 #'
-#' @param vcf A variant table as the one created by `collectVars`
-#' @return Annotated variants
+#' @param vcf A variant table as the one created by `collectVars`.
+#' @param liftover Whether variants have been lifted over (boolean).
+#' @return Annotated variants with MutationTaster2021 and MutationTaster2025 predictions for GRCh37 (liftover = TRUE) and GRCh38 (liftover = FALSE) variants, respectively. 
 #' @export
-taste <- function(vcf){
+taste <- function(vcf, liftover){
 	p <- progressr::progressor(steps = nrow(vcf))
 	out <- list()
+	mainAddress <- ifelse(isTRUE(liftover), 'https://www.genecascade.org/MT2021/MT_API102.cgi?variants=',
+		'https://www.genecascade.org/MutationTaster2025/modperl/API.cgi?variants=')
 	for(i in 1:nrow(vcf)){
 		p(message = sprintf("Adding %g", i))
-		mt <- httr::GET(paste0(
-			'https://www.genecascade.org/MT2021/MT_API102.cgi?variants=', vcf[i, 'CHR'],
-			':', vcf[i, 'POS'], vcf[i, 'REF'], '%3E', vcf[i, 'ALT']
-		))
+		mt <- httr::GET(paste0(mainAddress, vcf[i, 'CHR'], ':', vcf[i, 'POS'], vcf[i, 'REF'], '%3E', vcf[i, 'ALT']))
 
 		# Check status code & ERROR response
 		if(mt$status_code == 414 | grepl('^ERROR', rawToChar(mt$content))){

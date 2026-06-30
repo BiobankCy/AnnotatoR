@@ -2,15 +2,15 @@
 #'
 #' A wrapper function for downloading and organizing annotation files.
 #'
-#' @param gns Gene names character vector.
-#' @param annotators Annotators to create files for.
-#' @param databases Databases to fetch annotation from. 
-#' @param panelName Path and prefix for output file.  
-#' @param path Where database files will be downloaded.  
-#' @param type Type of gnomAD data to download. Applicable only for `intervar` and `all` annotators.
-#' @param liftover Should variants be lifted over?
+#' @param gns Gene names (HGNC) character vector.
+#' @param annotators Annotator resources to retrieve data from.
+#' @param databases Databases to retrieve variants from. The argument is taken into consideration when `intervar`, `gnomad_af`, `mutation_taster` or `all` annotators are selected. `gnomad_man` expects manually downloaded gnomAD csv files placed in `gnomad/manual` subdirectory of the directory set in `path` argument (see below). 
+#' @param panelName Path and prefix for output file.
+#' @param path Path to download directory. 
+#' @param type Type of gnomAD data to download. Required when `annotators` argument is set to/includes `gnomad_af`, `mutation_taster`, `intervar`, `all`
+#' @param liftover Should variants be lifted over to hg19? (Default hg38)
 #' @param saveRaw Save all variants without any annotation. Applicable only for `intervar` and `all` annotators.
-#' @return IonReporter annotation files.
+#' @return VCF-like annotation annotation files compatible with IonReporter.
 #' @export
 annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig', 'gnomad_af', 'intervar', 
 	'mutation_taster', 'all'), databases = c('gnomad_man', 'gnomad_auto', 'clinvar', 'lovd3', 'all'), 
@@ -65,10 +65,10 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 		},
 		mutation_taster = {
 			cat(crayon::red(crayon::bold('\n==========================\nMutationTaster predictions\n==========================\n')))
-			vars <- collectVars(gns, databases, path, type, liftover = TRUE)
+			vars <- collectVars(gns, databases, path, type, liftover)
 			if(nrow(vars) != 0){
 				message('Retrieving predictions\n')
-				progressr::with_progress(vars <- taste(vars))
+				progressr::with_progress(vars <- taste(vars, liftover))
 				message(nrow(vars), ' variants were successfully annotated.')
 				vcf_body <- data.frame(CHR = vars$CHR, POS = vars$POS, 
 					ID = paste0(gsub(' ', '_', vars$prediction)),
@@ -166,10 +166,10 @@ annotate <- function(gns, annotators = c('revel', 'alphamissense', 'clinvar_sig'
 				na = '')
 
 			cat(crayon::red(crayon::bold('\n==========================\nMutationTaster predictions\n==========================\n')))
-			vars <- collectVars(gns, databases, path, type, liftover = TRUE)
+			vars <- collectVars(gns, databases, path, type, liftover)
 			if(nrow(vars) != 0){
 				message('Retrieving predictions\n')
-				progressr::with_progress(vars <- taste(vars))
+				progressr::with_progress(vars <- taste(vars, liftover))
 				message(nrow(vars), ' variants were successfully annotated.')
 				vcf_body <- data.frame(CHR = vars$CHR, POS = vars$POS, 
 					ID = paste0(gsub(' ', '_', vars$prediction)),
