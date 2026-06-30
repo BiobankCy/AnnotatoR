@@ -14,28 +14,29 @@ pak::pkg_install('github::BiobankCy/AnnotateThat')
 ## Basic use
 
 `annotate()` is the main workhorse of the package. Through this wrapper, the user can provide a set of gene symbols to download annotation from:
-* REVEL
-* AlphaMissense
-* ClinVar
-* gnomAD
-* InterVar
-* MutationTaster
+* [REVEL](https://sites.google.com/site/revelgenomics/)
+* [AlphaMissense](https://alphamissense.hegelab.org/)
+* [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/)
+* [gnomAD](https://gnomad.broadinstitute.org/)
+* [InterVar](https://wintervar.wglab.org/)
+* [MutationTaster](https://genecascade.org/)
+
 for gene variants retrieved through:
-* gnomAD
-* ClinVar
-* LOVD3 
+* [gnomAD]((https://gnomad.broadinstitute.org/))
+* [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/)
+* [LOVD3](https://www.lovd.nl/3.0/home)
 
 ### Arguments
 
-* `gns` : a set of gene names
-* `annotators` : defines the annotator source(s) to use (`revel`, `alphamissense`, `clinvar_sig`, `gnomad_af`, `intervar`, 
+* `gns`         : a set of gene names
+* `annotators`  : defines the annotator source(s) to use (`revel`, `alphamissense`, `clinvar_sig`, `gnomad_af`, `intervar`, 
     `mutation_taster`, `all`)
-* `databases` : defines the online, publicly available databases to retrieve variants from (`gnomad_man`, `gnomad_auto`, `clinvar`, `lovd3`, `all`). The argument is taken into consideration when `intervar`, `gnomad_af`, `mutation_taster` or `all` annotators are selected. `gnomad_man` expects manually downloaded gnomAD csv files placed in `gnomad/manual` subdirectory of the directory set in `path` argument (see below).
-* `panelName` : defines the path and prefix of the output file
-* `path` : defines the path were database files are stored (default: `./dbs`)
-* `type` : defines which genomic data types to retrieve from gnomAD (`exome`, `genome` or `both`). It is taken into consideration in parallel with `databases` argument.
-* `liftover` : defines whether variants should be lifted over from GRCh38 to GRCh37 (default: FALSE)
-* `saveRaw` : defines whether retrieved variants should be saved without any annotation. Applicable only when `intervar` or `all` annotator is selected.
+* `databases`   : defines the online, publicly available databases to retrieve variants from (`gnomad_man`, `gnomad_auto`, `clinvar`, `lovd3`, `all`). The argument is taken into consideration when `intervar`, `gnomad_af`, `mutation_taster` or `all` annotators are selected. `gnomad_man` expects manually downloaded gnomAD csv files placed in `gnomad/manual` subdirectory of the directory set in `path` argument (see below).
+* `panelName`   : defines the path and prefix of the output file
+* `path`        : defines the path were database files are stored (default: `./dbs`)
+* `type`        : defines which genomic data types to retrieve from gnomAD (`exome`, `genome` or `both`). It is taken into consideration in parallel with `databases` argument.
+* `liftover`    : defines whether variants should be lifted over from GRCh38 to GRCh37 (default: FALSE)
+* `saveRaw`     : defines whether retrieved variants should be saved without any annotation. Applicable only when `intervar` or `all` annotator is selected.
 
 ### Examples
 
@@ -44,42 +45,42 @@ The basic input is a set of genes
 gns <- c('SRY', 'AMELY')
 ```
 
-* Retrieve REVEL predictions for all variants in `gns` as listed in AlphaMissense pre-computed file
+Retrieve REVEL predictions for all variants in `gns` as listed in AlphaMissense pre-computed file
 ```r
 annotate(gns, annotators = 'revel')
 ```
 
-* Retrieve AlphaMissense predictions for all variants in `gns` as listed in AlphaMissense pre-computed file
+Retrieve AlphaMissense predictions for all variants in `gns` as listed in AlphaMissense pre-computed file
 ```r
 annotate(gns, annotators = 'alphamissense') # create a custom AlphaMissense vcf file 
 ```
 
-* Retrieve InterVar-calculated ACMG predictions for all variants in `gns` as retrieved from `all` databases
+Retrieve InterVar-calculated ACMG predictions for all variants in `gns` as retrieved from `all` databases
 ```r
 annotate(gns, annotators = 'intervar', databases = 'all', type = 'both') # create a custom InterVar prediction vcf file 
 ```
 
-* Retrieve InterVar-calculated ACMG predictions for all variants in `gns` as retrieved from `all` databases
+Retrieve InterVar-calculated ACMG predictions for all variants in `gns` as retrieved from `all` databases
 ```r
 annotate(gns, annotators = 'intervar', databases = 'all', type = 'both') # create a custom InterVar prediction vcf file 
 ```
 
-* Retrieve gnomAD allele frequencies for all variants in `gns` as retrieved from `gnomad` database
+Retrieve gnomAD allele frequencies for all variants in `gns` as retrieved from `gnomad` database
 ```r
 annotate(gns, annotators = 'gnomad_af', databases = 'gnomad_auto', type = 'genome')
 ```
 
-* Retrieve gnomAD allele frequencies for all variants in `gns` as retrieved from manually fetched gnomAD csv files stored in `dbs/gnomad/manual`
+Retrieve gnomAD allele frequencies for all variants in `gns` as retrieved from manually fetched gnomAD csv files stored in `dbs/gnomad/manual`
 ```r
 annotate(gns, annotators = 'gnomad_af', databases = 'gnomad_man')
 ```
 
-* Retrieve MutationTaster2021 (GRCh37) or MutationTaster2025 (GRCh38) allele frequencies for all variants in `gns` as retrieved from `all` databases. `both` exome and genome based gnomAD files are used.
+Retrieve MutationTaster2021 (GRCh37) or MutationTaster2025 (GRCh38) allele frequencies for all variants in `gns` as retrieved from `all` databases. `both` exome and genome based gnomAD files are used.
 ```r
 annotate(gns, annotators = 'mutation_taster', databases = 'all', type = 'both')
 ```
 
-* Retrieve annotation from all supported annotators and databases. 
+Retrieve annotation from all supported annotators and databases. 
 ```r
 annotate(gns, annotators = 'all', databases = 'all', type = 'both')
 ```
