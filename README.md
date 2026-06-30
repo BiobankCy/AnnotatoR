@@ -22,7 +22,7 @@ pak::pkg_install('github::BiobankCy/AnnotateThat')
 * [MutationTaster](https://genecascade.org/)
 
 for gene variants retrieved through:
-* [gnomAD]((https://gnomad.broadinstitute.org/))
+* [gnomAD](https://gnomad.broadinstitute.org/)
 * [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/)
 * [LOVD3](https://www.lovd.nl/3.0/home)
 
