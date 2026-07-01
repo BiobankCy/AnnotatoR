@@ -1,7 +1,8 @@
 # AnnotatoR
 
 <!-- badges: start -->
-  ![GitHub](https://img.shields.io/github/license/BiobankCy/AnnotatoR)
+  [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](https://github.com/BiobankCy/AnnotatoR/blob/main/LICENSE)
+  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21098338.svg)](https://doi.org/10.5281/zenodo.21098338)
   ![GitHub repo size](https://img.shields.io/github/repo-size/BiobankCy/AnnotatoR)
   ![GitHub issues](https://img.shields.io/github/issues/BiobankCy/AnnotatoR)
   ![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)
