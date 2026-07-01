@@ -1,5 +1,13 @@
 # AnnotateThat
 
+<!-- badges: start -->
+  ![GitHub](https://img.shields.io/github/license/BiobankCy/AnnotateThat)
+  ![GitHub repo size](https://img.shields.io/github/repo-size/BiobankCy/AnnotateThat)
+  ![GitHub issues](https://img.shields.io/github/issues/BiobankCy/AnnotateThat)
+  ![Lifecycle:Maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)
+  ![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)
+<!-- badges: end -->
+
 An R package designed to create general purpose IonReporter-compatible annotation files starting from a set of gene names.
 
 ## Installation from GitHub
