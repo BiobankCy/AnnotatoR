@@ -2,7 +2,7 @@
 % Please edit documentation in R/main.R
 \name{annotate}
 \alias{annotate}
-\title{Create annotation files for IonReporter.}
+\title{Create general purpose, IonReporter-compatible variant annotation files.}
 \usage{
 annotate(
   gns,
@@ -21,7 +21,7 @@ annotate(
 
 \item{annotators}{Annotator resources to retrieve data from.}
 
-\item{databases}{Databases to retrieve variants from.}
+\item{databases}{Databases to retrieve variants from. The argument is taken into consideration when `intervar`, `gnomad_af`, `mutation_taster` or `all` annotators are selected. `gnomad_man` expects manually downloaded gnomAD csv files placed in `gnomad/manual` subdirectory of the directory set in `path` argument (see below).}
 
 \item{panelName}{Path and prefix for output file.}
 

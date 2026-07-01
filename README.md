@@ -1,9 +1,9 @@
-# AnnotateThat
+# AnnotatoR
 
 <!-- badges: start -->
-  ![GitHub](https://img.shields.io/github/license/BiobankCy/AnnotateThat)
-  ![GitHub repo size](https://img.shields.io/github/repo-size/BiobankCy/AnnotateThat)
-  ![GitHub issues](https://img.shields.io/github/issues/BiobankCy/AnnotateThat)
+  ![GitHub](https://img.shields.io/github/license/BiobankCy/AnnotatoR)
+  ![GitHub repo size](https://img.shields.io/github/repo-size/BiobankCy/AnnotatoR)
+  ![GitHub issues](https://img.shields.io/github/issues/BiobankCy/AnnotatoR)
   ![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)
 <!-- badges: end -->
 
@@ -15,7 +15,7 @@ An R package designed to create general purpose IonReporter-compatible annotatio
 if (!requireNamespace('pak',quietly=TRUE))
     install.packages('pak')
 
-pak::pkg_install('github::BiobankCy/AnnotateThat')
+pak::pkg_install('github::BiobankCy/AnnotatoR')
 ```
 
 ## Basic use
@@ -94,7 +94,7 @@ annotate(gns, annotators = 'all', databases = 'all', type = 'both')
 
 ## Required storage space
 
-AnnotateThat can use **extensive disk space**, depending on its use. For this reason, user is asked **each time** a file is about to be downloaded.
+AnnotatoR can use **extensive disk space**, depending on its use. For this reason, user is asked **each time** a file is about to be downloaded.
 
 ### gnomad_man vs gnomad_auto
 
@@ -104,4 +104,4 @@ For more details regarding gnomAD file size please refer to the respective [down
 
 ## Reference genome version
 
-AnnotateThat annotation is by default built around **GRCh38**. For **GRCh37** variants, set `liftover = TRUE`.
+AnnotatoR annotation is by default built around **GRCh38**. For **GRCh37** variants, set `liftover = TRUE`.

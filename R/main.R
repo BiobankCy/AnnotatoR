@@ -1,4 +1,4 @@
-#' Create annotation files for IonReporter.
+#' Create general purpose, IonReporter-compatible variant annotation files.
 #'
 #' A wrapper function for downloading and organizing annotation files.
 #'
