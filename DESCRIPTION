@@ -1,6 +1,6 @@
 Package: AnnotatoR
 Title: An R package for the creation of general purpose, IonReporter-compatible variant annotation files.
-Version: 0.1.0
+Version: 1.0
 Authors: Dionysios Fanidis [aut, cre] https://orcid.org/0000-0002-4053-2090
 Description: Given a set of HGNC gene symbols, the package retrieves on demand known variants and respective annotation from publicly available databases/predictors. Although formatted as IonRerorter-compatible files, results can be used for any other purpose.
 License: GPL (>= 3)
