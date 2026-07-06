@@ -106,3 +106,7 @@ For more details regarding gnomAD file size please refer to the respective [down
 ## Reference genome version
 
 AnnotatoR annotation is by default built around **GRCh38**. For **GRCh37** variants, set `liftover = TRUE`.
+
+## Funding
+
+This project has received funding from the European Union's Horizon 2020 research and innovation programme under grant agreement No 857122 ([CY-BIOBANK, Biobanking and the Cyprus Human Genome Project](https://cordis.europa.eu/project/id/857122)).
